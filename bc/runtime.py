@@ -33,7 +33,7 @@ class State:
     add = binop(operator.add)
     sub = binop(operator.sub)
     mul = binop(operator.mul)
-    div = binop(operator.truediv)
+    div = binop(operator.floordiv)
 
 HANDLERS = {
     Op.CONST: State.const,

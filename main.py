@@ -10,7 +10,7 @@ def main(file):
     if file.endswith('.nox'):
         program = syntax.parse(program)
         program = bc.compile(program)
-    elif file.endswith('.noxtb'):
+    elif file.endswith('.noxbc'):
         program = bc.parse(program)
     else:
         raise Exception(f'Unsupported file type: {file}')
