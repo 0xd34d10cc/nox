@@ -35,6 +35,9 @@ bytecode_grammar = '''
     %import common.CNAME
     %import common.SIGNED_INT
     %import common.WS
+    %import common.SH_COMMENT
+
+    %ignore SH_COMMENT
     %ignore WS
 '''
 

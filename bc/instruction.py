@@ -68,7 +68,7 @@ class Program:
             if type(instruction) is Label:
                 labels[instruction.name] = i - len(labels)
 
-        instructions = [i for i in source if type(i) is not Label]
+        instructions = [i for i in instructions if type(i) is not Label]
         for instruction in instructions:
             if instruction.op in (Op.JZ, Op.JNZ, Op.JMP):
                 assert len(instruction.args) == 1
