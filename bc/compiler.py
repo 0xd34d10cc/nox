@@ -1,6 +1,7 @@
 from lark import Token, Tree
 from .instruction import Instruction, Op
 
+
 def compile_into(instructions, ast):
     # Leaf expression
     if type(ast) is Token:
@@ -27,7 +28,7 @@ def compile_into(instructions, ast):
         return
 
     # non-leaf expression (i.e. binary operation)
-    assert ast.data in ('disj', 'conj', 'cmp', 'arithm', 'term')
+    assert ast.data in ('disj', 'conj', 'cmp', 'sum', 'product')
     assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
 
     i = 0

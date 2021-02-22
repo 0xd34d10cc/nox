@@ -1,12 +1,15 @@
-from . import Op, Instruction
+from . import Op, Instruction, Label, Program
 from lark import Lark, Transformer, v_args
 
 
 bytecode_grammar = '''
     ?start: program
 
-    program: instruction* -> program
+    program: item* -> program
 
+    ?item: instruction | jmp_label
+    jmp_label: CNAME ":" -> label
+    label: CNAME -> label
     instruction: "LOAD" var -> load
         | "STORE" var       -> store
         | "CONST" num       -> const
@@ -22,6 +25,9 @@ bytecode_grammar = '''
         | "GE"              -> ge
         | "EQ"              -> eq
         | "NE"              -> ne
+        | "JMP" label       -> jmp
+        | "JZ" label        -> jz
+        | "JNZ" label       -> jnz
 
     var: CNAME -> var
     num: SIGNED_INT -> number
@@ -40,11 +46,11 @@ def make_handler(op):
 @v_args(inline=True)
 class BytecodeTransformer(Transformer):
     def program(self, *instructions):
-        return list(instructions)
+        return Program.build(list(instructions))
 
     number = int
     var    = str
-    label  = str
+    label  = Label
 
     load   = make_handler(Op.LOAD)
     store  = make_handler(Op.STORE)
@@ -63,6 +69,10 @@ class BytecodeTransformer(Transformer):
     ge     = make_handler(Op.GE)
     eq     = make_handler(Op.EQ)
     ne     = make_handler(Op.NE)
+
+    jmp    = make_handler(Op.JMP)
+    jz     = make_handler(Op.JZ)
+    jnz    = make_handler(Op.JNZ)
 
 bytecode_parser = Lark(
     bytecode_grammar,

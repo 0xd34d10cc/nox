@@ -1,14 +1,15 @@
-CONST 4
-STORE a
-CONST 3
-STORE b
-CONST 1
-CONST 2
-LOAD b
-MUL
-LOAD a
-CONST 5
-ADD
-MUL
-ADD
-STORE x
+    CONST 10
+    STORE i
+    CONST 2
+    STORE x
+LOOP_0:
+    LOAD x
+    CONST 2
+    MUL
+    STORE x
+    LOAD i
+    CONST 1
+    SUB
+    STORE i
+    LOAD i
+    JNZ LOOP_0
