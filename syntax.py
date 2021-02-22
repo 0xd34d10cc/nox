@@ -6,16 +6,31 @@ language_grammar = '''
 
     ?program: statement*
     ?statement: assign
-    assign: VAR EQ expr
-    ?expr: term (ADD term | SUB term)*
-    ?term: factor (MUL factor | DIV factor)*
+    assign: VAR ASSIGN expr
+
+    ?expr: disj
+    ?disj: conj (OR conj)*
+    ?conj: cmp (AND cmp)*
+    ?cmp: arithm ((LT|LE|GT|GE|EQ|NE) arithm)*
+    ?arithm: term ((ADD|SUB) term)*
+    ?term: factor ((MUL|DIV) factor)*
     ?factor: SIGNED_INT | VAR | "(" expr ")"
 
     ADD: "+"
     SUB: "-"
     MUL: "*"
     DIV: "/"
-    EQ: "="
+
+    AND: "&&"
+    OR: "||"
+    LT: "<"
+    LE: "<="
+    GT: ">"
+    GE: ">="
+    EQ: "=="
+    NE: "!="
+
+    ASSIGN: "="
 
     %import common.SIGNED_INT
     %import common.WS

@@ -11,14 +11,16 @@ def binop(op):
         self.stack.append(result)
     return handler
 
+def and_(l ,r):
+    return operator.truth(l and r)
+
+def or_(l, r):
+    return operator.truth(l or r)
+
 @dataclass
 class State:
     stack: list
     memory: dict
-
-    def const(self, val):
-        assert type(val) is int
-        self.stack.append(val)
 
     def load(self, var):
         assert type(var) is str
@@ -30,23 +32,30 @@ class State:
         val = self.stack.pop()
         self.memory[var] = val
 
+    def const(self, val):
+        assert type(val) is int
+        self.stack.append(val)
+
     add = binop(operator.add)
     sub = binop(operator.sub)
     mul = binop(operator.mul)
     div = binop(operator.floordiv)
 
-HANDLERS = {
-    Op.CONST: State.const,
-    Op.LOAD:  State.load,
-    Op.STORE: State.store,
-    Op.ADD:   State.add,
-    Op.SUB:   State.sub,
-    Op.MUL:   State.mul,
-    Op.DIV:   State.div
-}
+    and_ = binop(and_)
+    or_  = binop(or_)
+    lt   = binop(operator.lt)
+    le   = binop(operator.le)
+    gt   = binop(operator.gt)
+    ge   = binop(operator.ge)
+    eq   = binop(operator.eq)
+    ne   = binop(operator.ne)
 
-assert len(HANDLERS) == len(Op)
+def getop(op):
+    op = str(op).lower()
+    return getattr(State, op, None) or getattr(State, op + '_')
 
-def execute(state, instructions):
+HANDLERS = {op: getop(op) for op in Op}
+
+def execute(state, instructions, handlers=HANDLERS):
     for instruction in instructions:
-        HANDLERS[instruction.op](state, *instruction.args)
+        handlers[instruction.op](state, *instruction.args)

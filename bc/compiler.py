@@ -1,13 +1,6 @@
 from lark import Token, Tree
 from .instruction import Instruction, Op
 
-OPS = {
-    'ADD': Op.ADD,
-    'SUB': Op.SUB,
-    'MUL': Op.MUL,
-    'DIV': Op.DIV
-}
-
 def compile_into(instructions, ast):
     # Leaf expression
     if type(ast) is Token:
@@ -34,22 +27,23 @@ def compile_into(instructions, ast):
         return
 
     # non-leaf expression (i.e. binary operation)
-    assert ast.data == 'expr' or ast.data == 'term'
-    if len(ast.children) % 3 == 1:
-        raise Exception(f'Invalid binop tree: {ast}')
+    assert ast.data in ('disj', 'conj', 'cmp', 'arithm', 'term')
+    assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
 
     i = 0
     while i + 3 <= len(ast.children):
         l, op, r = ast.children[i:i+3]
         compile_into(instructions, l)
         compile_into(instructions, r)
-        instructions.append(Instruction(OPS[op.type], ()))
+        op = getattr(Op, op.type)
+        instructions.append(Instruction(op, ()))
         i += 3
 
     if len(ast.children) != i:
         op, r = ast.children[i:i+2]
         compile_into(instructions, r)
-        instructions.append(Instruction(OPS[op.type], ()))
+        op = getattr(Op, op.type)
+        instructions.append(Instruction(op, ()))
 
 def compile(ast):
     instructions = []
