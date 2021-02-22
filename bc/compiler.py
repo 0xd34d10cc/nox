@@ -9,6 +9,7 @@ OPS = {
 }
 
 def compile_into(instructions, ast):
+    # Leaf expression
     if type(ast) is Token:
         token = ast
 
@@ -17,9 +18,22 @@ def compile_into(instructions, ast):
             instructions.append(Instruction(Op.CONST, (val,)))
             return
 
+        if token.type == 'VAR':
+            var = token.value
+            instructions.append(Instruction(Op.LOAD, (var,)))
+            return
+
         raise Exception(f'Unexpected token: {token}')
 
+    # statement
     assert type(ast) is Tree
+    if ast.data == 'assign':
+        var, op, expr = ast.children
+        compile_into(instructions, expr)
+        instructions.append(Instruction(Op.STORE, (var.value,)))
+        return
+
+    # non-leaf expression (i.e. binary operation)
     assert ast.data == 'expr' or ast.data == 'term'
     if len(ast.children) % 3 == 1:
         raise Exception(f'Invalid binop tree: {ast}')
@@ -39,5 +53,7 @@ def compile_into(instructions, ast):
 
 def compile(ast):
     instructions = []
-    compile_into(instructions, ast)
+    assert ast.data == 'program'
+    for statement in ast.children:
+        compile_into(instructions, statement)
     return instructions
