@@ -7,7 +7,7 @@ language_grammar = '''
     ?program: block
     ?block: statement*
     ?statement: assign | if_else | while | call_statement
-    if_else: "if" expr "{" block "}"
+    if_else: "if" expr "{" block "}" ["else" "{" block "}"]
     while: "while" expr "{" block "}"
     assign: VAR ASSIGN expr
     call_statement: VAR "(" [expr ("," expr)*] ")"
@@ -17,7 +17,7 @@ language_grammar = '''
     ?conj: cmp (AND cmp)*
     ?cmp: sum ((LT|LE|GT|GE|EQ|NE) sum)*
     ?sum: product ((ADD|SUB) product)*
-    ?product: atom ((MUL|DIV) atom)*
+    ?product: atom ((MUL|DIV|MOD) atom)*
     ?atom: SIGNED_INT | VAR | call_expr | "(" expr ")"
     call_expr: VAR "(" [expr ("," expr)*] ")"
 
@@ -25,6 +25,7 @@ language_grammar = '''
     SUB: "-"
     MUL: "*"
     DIV: "/"
+    MOD: "%"
 
     AND: "&&"
     OR: "||"
@@ -50,6 +51,8 @@ parser = Lark(language_grammar, parser='lalr')
 parse = parser.parse
 
 if __name__ == '__main__':
-    program = open('example.nox', 'rt', encoding='utf-8').read()
+    import sys
+    program = 'example.nox' if len(sys.argv) == 1 else sys.argv[1]
+    program = open(program, 'rt', encoding='utf-8').read()
     program = parse(program)
     tree.pydot__tree_to_png(program, 'program.png')

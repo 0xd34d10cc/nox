@@ -44,11 +44,18 @@ class Compiler:
         self.push_op(Op.STORE, var.value)
 
     def if_else(self, ast):
-        condition, if_true = ast.children
+        condition, if_true, *if_false = ast.children
+        has_else = len(ast.children) > 2
         self.compile(condition)
-        end = Label.gen("if_end")
-        self.push_op(Op.JZ, end)
+        false = Label.gen('if_false')
+        end = Label.gen('if_end')
+        self.push_op(Op.JZ, false if len(if_false) else end)
         self.compile(if_true)
+        if len(if_false):
+            self.push_op(Op.JMP, end)
+            self.push(false)
+            self.compile(*if_false)
+
         self.push(end)
 
     def while_(self, ast):
@@ -82,22 +89,17 @@ class Compiler:
         self.call_expr(ast)
 
     def binop(self, ast):
-        assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
+        assert len(ast.children) % 2 != 0, f'Invalid binop tree: {ast}'
+        l = ast.children[0]
+        self.compile(l)
 
-        i = 0
-        while i + 3 <= len(ast.children):
-            l, op, r = ast.children[i:i+3]
-            self.compile(l)
-            self.compile(r)
-            op = getattr(Op, op.type)
-            self.push_op(op)
-            i += 3
-
-        if len(ast.children) != i:
+        i = 1
+        while i + 2 <= len(ast.children):
             op, r = ast.children[i:i+2]
             self.compile(r)
             op = getattr(Op, op.type)
             self.push_op(op)
+            i += 2
 
     disj = binop
     conj = binop

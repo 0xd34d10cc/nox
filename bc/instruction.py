@@ -15,21 +15,22 @@ class Op(Enum):
     SUB = 5
     MUL = 6
     DIV = 7
+    MOD = 8
     # Logic ops
-    AND = 8
-    OR = 9
-    LT = 10
-    LE = 11
-    GT = 12
-    GE = 13
-    EQ = 14
-    NE = 15
+    AND = 9
+    OR = 10
+    LT = 11
+    LE = 12
+    GT = 13
+    GE = 14
+    EQ = 15
+    NE = 16
     # Jumps
-    JMP = 16
-    JZ = 17
-    JNZ = 18
-    CALL = 19
-    CALL_NATIVE = 20
+    JMP = 17
+    JZ = 18
+    JNZ = 19
+    CALL = 20
+    CALL_NATIVE = 21
 
     def __str__(self):
         return self.name

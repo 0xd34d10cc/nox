@@ -1,15 +1,16 @@
 import operator
+import sys
 
 from typing import List, Dict
 from dataclasses import dataclass
-from .instruction import Instruction, Op, Program
+from .instruction import Instruction, Op
 
 def binop(op):
     def handler(self):
         r = self.stack.pop()
         l = self.stack.pop()
         result = op(l, r)
-        self.stack.append(result)
+        self.stack.append(int(result))
         self.ip += 1
     return handler
 
@@ -54,6 +55,7 @@ class State:
     sub = binop(operator.sub)
     mul = binop(operator.mul)
     div = binop(operator.floordiv)
+    mod = binop(operator.mod)
 
     and_ = binop(and_)
     or_  = binop(or_)
@@ -85,11 +87,14 @@ class State:
 
     # "native" functions
     def read(self):
-        value = int(input('I: '))
-        self.stack.append(value)
+        value = input('I: ') if sys.stdin.isatty() else input()
+        self.stack.append(int(value))
 
     def write(self, value):
-        print(f'O: {value}')
+        if sys.stdout.isatty():
+            print(f'O: {value}')
+        else:
+            print(value)
 
 def getop(op):
     op = str(op).lower()
