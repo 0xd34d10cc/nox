@@ -1,0 +1,12 @@
+i = 0
+s = 0
+while i < 100 {
+    j = 0
+    while j < 100 {
+        s = s + j
+        j = j + 1
+    }
+    s = s + i
+    i = i + 1
+}
+write(s)
