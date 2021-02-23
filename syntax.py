@@ -1,4 +1,4 @@
-from lark import Lark, tree
+from lark import Lark
 
 
 language_grammar = '''
@@ -52,6 +52,7 @@ parse = parser.parse
 
 if __name__ == '__main__':
     import sys
+    from lark import tree
     program = 'example.nox' if len(sys.argv) == 1 else sys.argv[1]
     program = open(program, 'rt', encoding='utf-8').read()
     program = parse(program)

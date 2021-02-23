@@ -41,6 +41,8 @@ for test_case in cases:
     program = syntax.parse(program)
     program = bc.compile(program)
 
+    assert program == bc.parse(str(program))
+
     out = io.StringIO()
     input = io.StringIO(input)
     state = bc.State(ip=0, stack=[], memory={})

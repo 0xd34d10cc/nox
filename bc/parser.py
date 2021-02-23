@@ -8,8 +8,8 @@ bytecode_grammar = '''
     program: item* -> program
 
     ?item: instruction | jmp_label
-    jmp_label: CNAME ":" -> label
-    label: CNAME -> label
+    jmp_label: var ":" -> label
+    label: var -> label
     instruction: "LOAD" var -> load
         | "STORE" var       -> store
         | "CONST" num       -> const
@@ -17,6 +17,7 @@ bytecode_grammar = '''
         | "SUB"             -> sub
         | "MUL"             -> mul
         | "DIV"             -> div
+        | "MOD"             -> mod
         | "AND"             -> and_
         | "OR"              -> or_
         | "LT"              -> lt
@@ -64,6 +65,7 @@ class BytecodeTransformer(Transformer):
     sub    = make_handler(Op.SUB)
     mul    = make_handler(Op.MUL)
     div    = make_handler(Op.DIV)
+    mod    = make_handler(Op.MOD)
 
     and_   = make_handler(Op.AND)
     or_    = make_handler(Op.OR)
