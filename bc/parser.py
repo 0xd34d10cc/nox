@@ -43,7 +43,7 @@ bytecode_grammar = '''
 
 def make_handler(op):
     def handler(self, *args):
-        return Instruction(op, args)
+        return Instruction(op, *args)
     return handler
 
 @v_args(inline=True)

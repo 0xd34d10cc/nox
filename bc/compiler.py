@@ -1,80 +1,92 @@
+from dataclasses import dataclass
 from lark import Token, Tree
 from .instruction import Program, Instruction, Op, Label
 
+@dataclass
+class Compiler:
+    instructions: list
 
-def compile_into(instructions, ast):
-    # Leaf expression
-    if type(ast) is Token:
-        token = ast
+    def push(self, instruction):
+        self.instructions.append(instruction)
 
-        if token.type == 'SIGNED_INT':
-            val = int(token.value)
-            instructions.append(Instruction(Op.CONST, (val,)))
-            return
+    def push_op(self, op, *args):
+        self.push(Instruction(op, *args))
 
-        if token.type == 'VAR':
-            var = token.value
-            instructions.append(Instruction(Op.LOAD, (var,)))
-            return
+    def compile(self, ast):
+        # Leaf expression
+        if type(ast) is Token:
+            token = ast
 
-        raise Exception(f'Unexpected token: {token}')
+            if token.type == 'SIGNED_INT':
+                val = int(token.value)
+                self.push_op(Op.CONST, val)
+                return
 
-    # statement
-    assert type(ast) is Tree
-    if ast.data == 'block':
+            if token.type == 'VAR':
+                var = token.value
+                self.push_op(Op.LOAD, var)
+                return
+
+            raise Exception(f'Unexpected token: {token}')
+
+        assert type(ast) is Tree
+        handler = getattr(self, ast.data, None) or getattr(self, ast.data + '_')
+        handler(ast)
+
+    def block(self, ast):
         for statement in ast.children:
-            compile_into(instructions, statement)
-        return
+            self.compile(statement)
 
-    if ast.data == 'assign':
+    def assign(self, ast):
         var, op, expr = ast.children
-        compile_into(instructions, expr)
-        instructions.append(Instruction(Op.STORE, (var.value,)))
-        return
+        self.compile(expr)
+        self.push_op(Op.STORE, var.value)
 
-    if ast.data == 'if_else':
+    def if_else(self, ast):
         condition, if_true = ast.children
-        compile_into(instructions, condition)
+        self.compile(condition)
         end = Label.gen("if_end")
-        instructions.append(Instruction(Op.JZ, (end,)))
-        compile_into(instructions, if_true)
-        instructions.append(end)
-        return
+        self.push_op(Op.JZ, end)
+        self.compile(if_true)
+        self.push(end)
 
-    if ast.data == 'while':
+    def while_(self, ast):
         condition, body = ast.children
         cond_start = Label.gen('while_cond')
         while_body = Label.gen('while_body')
-        instructions.append(Instruction(Op.JMP, (cond_start,)))
-        instructions.append(while_body)
-        compile_into(instructions, body)
-        instructions.append(cond_start)
-        compile_into(instructions, condition)
-        instructions.append(Instruction(Op.JNZ, (while_body,)))
-        return
+        self.push_op(Op.JMP, cond_start)
+        self.push(while_body)
+        self.compile(body)
+        self.push(cond_start)
+        self.compile(condition)
+        self.push_op(Op.JNZ, while_body)
 
-    # non-leaf expression (i.e. binary operation)
-    assert ast.data in ('disj', 'conj', 'cmp', 'sum', 'product'), ast.data
-    assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
+    def binop(self, ast):
+        assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
 
-    i = 0
-    while i + 3 <= len(ast.children):
-        l, op, r = ast.children[i:i+3]
-        compile_into(instructions, l)
-        compile_into(instructions, r)
-        op = getattr(Op, op.type)
-        instructions.append(Instruction(op, ()))
-        i += 3
+        i = 0
+        while i + 3 <= len(ast.children):
+            l, op, r = ast.children[i:i+3]
+            self.compile(l)
+            self.compile(r)
+            op = getattr(Op, op.type)
+            self.push_op(op)
+            i += 3
 
-    if len(ast.children) != i:
-        op, r = ast.children[i:i+2]
-        compile_into(instructions, r)
-        op = getattr(Op, op.type)
-        instructions.append(Instruction(op, ()))
+        if len(ast.children) != i:
+            op, r = ast.children[i:i+2]
+            self.compile(r)
+            op = getattr(Op, op.type)
+            self.push_op(op)
+
+    disj = binop
+    conj = binop
+    cmp = binop
+    sum = binop
+    product = binop
+
 
 def compile(ast):
-    instructions = []
-    assert ast.data == 'block'
-    for statement in ast.children:
-        compile_into(instructions, statement)
-    return Program.build(instructions)
+    compiler = Compiler(instructions=[])
+    compiler.compile(ast)
+    return Program.build(compiler.instructions)

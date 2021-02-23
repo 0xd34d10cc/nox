@@ -55,6 +55,10 @@ class Instruction:
     op: Op
     args: tuple
 
+    def __init__(self, op, *args):
+        self.op = op
+        self.args = args
+
     def __str__(self):
         return f'{self.op} {",".join(str(arg) for arg in self.args)}'
 
