@@ -35,10 +35,22 @@ def compile_into(instructions, ast):
     if ast.data == 'if_else':
         condition, if_true = ast.children
         compile_into(instructions, condition)
-        end_if = Label.gen("end_if")
-        instructions.append(Instruction(Op.JZ, (end_if,)))
+        end = Label.gen("if_end")
+        instructions.append(Instruction(Op.JZ, (end,)))
         compile_into(instructions, if_true)
-        instructions.append(end_if)
+        instructions.append(end)
+        return
+
+    if ast.data == 'while':
+        condition, body = ast.children
+        cond_start = Label.gen('while_cond')
+        while_body = Label.gen('while_body')
+        instructions.append(Instruction(Op.JMP, (cond_start,)))
+        instructions.append(while_body)
+        compile_into(instructions, body)
+        instructions.append(cond_start)
+        compile_into(instructions, condition)
+        instructions.append(Instruction(Op.JNZ, (while_body,)))
         return
 
     # non-leaf expression (i.e. binary operation)

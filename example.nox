@@ -1,6 +1,6 @@
 i = 10
 x = 1
-if x != i then
+while i != 0 do
     x = x * 2
     i = i - 1
-fi
+od
