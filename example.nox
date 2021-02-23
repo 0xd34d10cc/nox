@@ -1,6 +1,8 @@
 i = 10
+# example comment
 x = 1
 while i != 0 do
     x = x * 2
+    # another comment
     i = i - 1
 od

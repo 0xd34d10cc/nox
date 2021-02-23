@@ -36,9 +36,12 @@ language_grammar = '''
     ASSIGN: "="
 
     %import common.SIGNED_INT
-    %import common.WS
     %import common.CNAME -> VAR
+    %import common.WS
+    %import common.SH_COMMENT
+
     %ignore WS
+    %ignore SH_COMMENT
 '''
 
 parser = Lark(language_grammar, parser='lalr')
