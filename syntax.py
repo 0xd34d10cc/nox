@@ -6,7 +6,8 @@ language_grammar = '''
 
     ?program: block
     ?block: statement*
-    ?statement: assign
+    ?statement: assign | if_else
+    if_else: "if" expr "then" block "fi"
     assign: VAR ASSIGN expr
 
     ?expr: disj

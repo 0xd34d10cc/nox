@@ -35,13 +35,14 @@ class Op(Enum):
 
 @dataclass
 class Label:
-    name: str
+    __slots__ = ('name')
 
+    name: str
     ID = 0
 
-    def gen(cls, name):
-        n = f'{name}_{cls.ID}'
-        cls.ID += 1
+    def gen(name):
+        n = f'{name}_{Label.ID}'
+        Label.ID += 1
         return Label(n)
 
     def __str__(self):
@@ -49,6 +50,8 @@ class Label:
 
 @dataclass
 class Instruction:
+    __slots__ = ('op', 'args')
+
     op: Op
     args: tuple
 
@@ -57,6 +60,8 @@ class Instruction:
 
 @dataclass
 class Program:
+    __slots__ = ('source', 'instructions')
+
     source: List[Union[Instruction, Label]]
     instructions: List[Instruction]
 

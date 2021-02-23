@@ -13,7 +13,7 @@ def binop(op):
         self.ip += 1
     return handler
 
-def and_(l ,r):
+def and_(l, r):
     return operator.truth(l and r)
 
 def or_(l, r):
@@ -21,6 +21,8 @@ def or_(l, r):
 
 @dataclass
 class State:
+    __slots__ = ('ip', 'stack', 'memory')
+
     ip: int
     stack: List[int]
     memory: Dict[str, int]
@@ -60,18 +62,10 @@ class State:
         self.ip = target
 
     def jz(self, target):
-        top = self.stack.pop()
-        if not top:
-            self.ip = target
-        else:
-            self.ip += 1
+        self.ip = target if not self.stack.pop() else self.ip + 1
 
     def jnz(self, target):
-        top = self.stack.pop()
-        if top:
-            self.ip = target
-        else:
-            self.ip += 1
+        self.ip = target if self.stack.pop() else self.ip + 1
 
 def getop(op):
     op = str(op).lower()

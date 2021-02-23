@@ -1,5 +1,5 @@
 from lark import Token, Tree
-from .instruction import Instruction, Op
+from .instruction import Program, Instruction, Op, Label
 
 
 def compile_into(instructions, ast):
@@ -21,14 +21,28 @@ def compile_into(instructions, ast):
 
     # statement
     assert type(ast) is Tree
+    if ast.data == 'block':
+        for statement in ast.children:
+            compile_into(instructions, statement)
+        return
+
     if ast.data == 'assign':
         var, op, expr = ast.children
         compile_into(instructions, expr)
         instructions.append(Instruction(Op.STORE, (var.value,)))
         return
 
+    if ast.data == 'if_else':
+        condition, if_true = ast.children
+        compile_into(instructions, condition)
+        end_if = Label.gen("end_if")
+        instructions.append(Instruction(Op.JZ, (end_if,)))
+        compile_into(instructions, if_true)
+        instructions.append(end_if)
+        return
+
     # non-leaf expression (i.e. binary operation)
-    assert ast.data in ('disj', 'conj', 'cmp', 'sum', 'product')
+    assert ast.data in ('disj', 'conj', 'cmp', 'sum', 'product'), ast.data
     assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'
 
     i = 0
@@ -48,7 +62,7 @@ def compile_into(instructions, ast):
 
 def compile(ast):
     instructions = []
-    assert ast.data == 'program'
+    assert ast.data == 'block'
     for statement in ast.children:
         compile_into(instructions, statement)
-    return instructions
+    return Program.build(instructions)
