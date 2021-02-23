@@ -64,6 +64,7 @@ class Compiler:
 
     def call_expr(self, ast):
         name = ast.children[0]
+        # TODO: check that function returns value
         assert name in ('read', 'write')
 
         if name == 'read':
@@ -75,6 +76,10 @@ class Compiler:
             self.compile(arg)
 
         self.push_op(Op.CALL_NATIVE, Label(name))
+
+    def call_statement(self, ast):
+        # TODO: check that function doesn't return values
+        self.call_expr(ast)
 
     def binop(self, ast):
         assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'

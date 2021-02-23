@@ -17,7 +17,6 @@ def main(file):
 
     state = bc.State(ip=0, stack=[], memory={})
     bc.execute(state, program)
-    print(state)
 
 if __name__ == '__main__':
     main(*sys.argv[1:])

@@ -6,3 +6,5 @@ while i != 0 {
     // another comment
     i = i - 1
 }
+
+write(x)
