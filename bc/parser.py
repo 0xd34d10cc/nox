@@ -28,6 +28,7 @@ bytecode_grammar = '''
         | "JMP" label       -> jmp
         | "JZ" label        -> jz
         | "JNZ" label       -> jnz
+        | "CALL_NATIVE" label -> call_native
 
     var: CNAME -> var
     num: SIGNED_INT -> number
@@ -76,6 +77,8 @@ class BytecodeTransformer(Transformer):
     jmp    = make_handler(Op.JMP)
     jz     = make_handler(Op.JZ)
     jnz    = make_handler(Op.JNZ)
+    call   = make_handler(Op.CALL)
+    call_native = make_handler(Op.CALL_NATIVE)
 
 bytecode_parser = Lark(
     bytecode_grammar,

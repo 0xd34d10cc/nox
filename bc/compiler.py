@@ -1,3 +1,4 @@
+from itertools import islice
 from dataclasses import dataclass
 from lark import Token, Tree
 from .instruction import Program, Instruction, Op, Label
@@ -27,7 +28,7 @@ class Compiler:
                 self.push_op(Op.LOAD, var)
                 return
 
-            raise Exception(f'Unexpected token: {token}')
+            assert False, f'Unexpected token: {token}'
 
         assert type(ast) is Tree
         handler = getattr(self, ast.data, None) or getattr(self, ast.data + '_')
@@ -60,6 +61,20 @@ class Compiler:
         self.push(cond_start)
         self.compile(condition)
         self.push_op(Op.JNZ, while_body)
+
+    def call_expr(self, ast):
+        name = ast.children[0]
+        assert name in ('read', 'write')
+
+        if name == 'read':
+            assert len(ast.children) == 1, 'read() builtin function expects no arguments'
+        elif name == 'write':
+            assert len(ast.children) == 2, 'write() builtin function expects a single argument'
+
+        for arg in islice(reversed(ast.children), len(ast.children) - 1):
+            self.compile(arg)
+
+        self.push_op(Op.CALL_NATIVE, Label(name))
 
     def binop(self, ast):
         assert len(ast.children) % 3 != 1, f'Invalid binop tree: {ast}'

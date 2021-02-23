@@ -19,6 +19,12 @@ def and_(l, r):
 def or_(l, r):
     return operator.truth(l or r)
 
+# name -> n_args
+BUILTINS = {
+    'read': 0,
+    'write': 1
+}
+
 @dataclass
 class State:
     __slots__ = ('ip', 'stack', 'memory')
@@ -66,6 +72,24 @@ class State:
 
     def jnz(self, target):
         self.ip = target if self.stack.pop() else self.ip + 1
+
+    def call(self, target):
+        assert False, 'Not implemented'
+
+    def call_native(self, target):
+        n_args = BUILTINS[target.name]
+        args = tuple(self.stack.pop() for _ in range(n_args))
+        handler = getattr(self, target.name, None) or getattr(self, target.name + '_')
+        handler(*args)
+        self.ip += 1
+
+    # "native" functions
+    def read(self):
+        value = int(input('I: '))
+        self.stack.append(value)
+
+    def write(self, value):
+        print(f'O: {value}')
 
 def getop(op):
     op = str(op).lower()

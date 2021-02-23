@@ -7,8 +7,8 @@ language_grammar = '''
     ?program: block
     ?block: statement*
     ?statement: assign | if_else | while
-    if_else: "if" expr "then" block "fi"
-    while: "while" expr "do" block "od"
+    if_else: "if" expr "{" block "}"
+    while: "while" expr "{" block "}"
     assign: VAR ASSIGN expr
 
     ?expr: disj
@@ -17,7 +17,8 @@ language_grammar = '''
     ?cmp: sum ((LT|LE|GT|GE|EQ|NE) sum)*
     ?sum: product ((ADD|SUB) product)*
     ?product: atom ((MUL|DIV) atom)*
-    ?atom: SIGNED_INT | VAR | "(" expr ")"
+    ?atom: SIGNED_INT | VAR | call_expr | "(" expr ")"
+    call_expr: VAR "(" [expr ("," expr)*] ")"
 
     ADD: "+"
     SUB: "-"
@@ -38,10 +39,10 @@ language_grammar = '''
     %import common.SIGNED_INT
     %import common.CNAME -> VAR
     %import common.WS
-    %import common.SH_COMMENT
+    %import common.CPP_COMMENT
 
     %ignore WS
-    %ignore SH_COMMENT
+    %ignore CPP_COMMENT
 '''
 
 parser = Lark(language_grammar, parser='lalr')

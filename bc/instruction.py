@@ -25,10 +25,11 @@ class Op(Enum):
     EQ = 14
     NE = 15
     # Jumps
-    # TODO
     JMP = 16
     JZ = 17
     JNZ = 18
+    CALL = 19
+    CALL_NATIVE = 20
 
     def __str__(self):
         return self.name
