@@ -13,9 +13,9 @@ import syntax
 import bc
 
 @contextlib.contextmanager
-def redirect_stdin(file):
+def use_as_stdin(s):
     original = sys.stdin
-    sys.stdin = file
+    sys.stdin = io.StringIO(s)
     yield
     sys.stdin = original
 
@@ -23,35 +23,31 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
             for text in _nsre.split(s)]
 
+def read_files(base):
+    data = tuple()
+    for ext in '.nox', '.in', '.out':
+        with open(base.replace('.nox', ext), 'rt', encoding='utf-8') as f:
+            data += (f.read(),)
+    return data
+
 files = glob.glob(os.path.join(current_dir, '*.nox'))
 cases = sorted(files, key=natural_sort_key)
 for test_case in cases:
     name = os.path.basename(test_case)
     print(f'Test {name:<10}', end='', flush=True)
 
-    with open(test_case, 'rt', encoding='utf-8') as f:
-        program = f.read()
-
-    with open(test_case.replace('.nox', '.in'), 'rt', encoding='utf-8') as f:
-        input = f.read()
-
-    with open(test_case.replace('.nox', '.out'), 'rt', encoding='utf-8') as f:
-        expected_output = f.read()
-
+    program, inp, expected_output = read_files(test_case)
     program = syntax.parse(program)
     program = bc.compile(program)
-
     assert program == bc.parse(str(program))
 
     out = io.StringIO()
-    input = io.StringIO(input)
     state = bc.State(ip=0, stack=[], memory={})
-    with contextlib.redirect_stdout(out), redirect_stdin(input):
+    with contextlib.redirect_stdout(out), use_as_stdin(inp):
         bc.execute(state, program)
 
     assert len(state.stack) == 0, str(stack)
     actual_output = out.getvalue()
-
     if actual_output != expected_output:
         print('FAIL')
         diffs = difflib.ndiff(
