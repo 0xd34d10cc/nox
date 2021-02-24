@@ -112,6 +112,9 @@ class Compiler:
         self.compile(condition)
         self.push_op(Op.JNZ, for_body)
 
+    def pass_(self, ast):
+        # compiles to nothing
+        pass
 
     def compile_native(self, ast):
         for arg in islice(reversed(ast.children), len(ast.children) - 1):

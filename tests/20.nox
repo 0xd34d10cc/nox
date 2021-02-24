@@ -1,0 +1,19 @@
+s = 0
+n = read()
+p = 2
+
+while n > 0 {
+    c = 2
+    f = 1
+    for c = 2, c * c <= p && f, c = c+1 {
+        f = p % c != 0
+    }
+
+    if f != 0 {
+        if n == 1 {
+             write (p)
+        }
+        n = n - 1
+    }
+    p = p + 1
+}

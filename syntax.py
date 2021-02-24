@@ -6,13 +6,14 @@ language_grammar = '''
 
     ?program: statement*
     ?block: "{" statement* "}"
-    ?statement: assign | if_else | while | do_while | for | call_statement
+    ?statement: assign | if_else | while | do_while | for | call_statement | pass
     if_else: "if" expr block ("else" "if" expr block)* ["else" block]
     while: "while" expr block
     do_while: "do" block "while" expr
     for: "for" statement "," expr "," statement block
     assign: VAR ASSIGN expr
     call_statement: VAR "(" [expr ("," expr)*] ")"
+    pass: "pass"
 
     ?expr: disj
     ?disj: conj (OR conj)*
