@@ -99,6 +99,20 @@ class Compiler:
         self.compile(condition)
         self.push_op(Op.JNZ, start)
 
+    def for_(self, ast):
+        initialization, condition, step, body = ast.children
+        for_cond = Label.gen('for_cond')
+        for_body = Label.gen('for_body')
+        self.compile(initialization)
+        self.push_op(Op.JMP, for_cond)
+        self.push(for_body)
+        self.compile(body)
+        self.compile(step)
+        self.push(for_cond)
+        self.compile(condition)
+        self.push_op(Op.JNZ, for_body)
+
+
     def compile_native(self, ast):
         for arg in islice(reversed(ast.children), len(ast.children) - 1):
             self.compile(arg)

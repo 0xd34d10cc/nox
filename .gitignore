@@ -117,6 +117,9 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
+# Idea project settings
+.idea/
+
 # mkdocs documentation
 /site
 
@@ -130,3 +133,4 @@ dmypy.json
 
 # syntax tree visualization
 *.png
+
