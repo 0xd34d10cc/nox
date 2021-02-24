@@ -1,0 +1,17 @@
+n = read()
+while n > 0 {
+    if n < 1000 {
+        if n < 500 {
+            if n < 250 {
+                if n < 125 {
+                    if n < 63 {
+                        if n < 32 {
+                            write(1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    n = n - 1
+}

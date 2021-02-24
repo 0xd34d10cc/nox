@@ -1,0 +1,21 @@
+s = 0
+n = read()
+p = 2
+while n > 0 {
+    c = 2
+    f = 1
+    while c*c <= p && f {
+        f = (p % c) != 0
+        c = c + 1
+    }
+
+    if f != 0 {
+        if n == 1 {
+            write(p)
+        }
+        else {}
+        n = n - 1
+    }
+    else {}
+    p = p + 1
+}

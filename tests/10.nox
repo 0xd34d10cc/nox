@@ -1,8 +1,8 @@
 i = 0
 s = 0
-while i < 100 {
+while i < 10 {
     j = 0
-    while j < 100 {
+    while j < 10 {
         s = s + j
         j = j + 1
     }

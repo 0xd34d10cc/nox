@@ -4,11 +4,12 @@ from lark import Lark
 language_grammar = '''
     ?start: program
 
-    ?program: block
-    ?block: statement*
-    ?statement: assign | if_else | while | call_statement
-    if_else: "if" expr "{" block "}" ["else" "{" block "}"]
-    while: "while" expr "{" block "}"
+    ?program: statement*
+    ?block: "{" statement* "}"
+    ?statement: assign | if_else | while | do_while | call_statement
+    if_else: "if" expr block ("else" "if" expr block)* ["else" block]
+    while: "while" expr block
+    do_while: "do" block "while" expr
     assign: VAR ASSIGN expr
     call_statement: VAR "(" [expr ("," expr)*] ")"
 
