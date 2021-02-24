@@ -3,6 +3,13 @@ from dataclasses import dataclass
 from lark import Token, Tree
 from .instruction import Program, Instruction, Op, Label
 
+
+# name -> n_args
+NATIVE_FUNCTIONS = {
+    'read',
+    'write'
+}
+
 @dataclass
 class Compiler:
     instructions: list
@@ -38,6 +45,8 @@ class Compiler:
         for statement in ast.children:
             self.compile(statement)
 
+    program = block
+
     def assign(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
@@ -45,16 +54,29 @@ class Compiler:
 
     def if_else(self, ast):
         condition, if_true, *if_false = ast.children
-        has_else = len(ast.children) > 2
         self.compile(condition)
         false = Label.gen('if_false')
         end = Label.gen('if_end')
         self.push_op(Op.JZ, false if len(if_false) else end)
         self.compile(if_true)
+
         if len(if_false):
             self.push_op(Op.JMP, end)
+
+        i = 0
+        while i + 2 < len(if_false):
+            condition, body = if_false[i:i+2]
             self.push(false)
-            self.compile(*if_false)
+            self.compile(condition)
+            false = Label.gen('if_false')
+            self.push_op(Op.JZ, false)
+            self.compile(body)
+            self.push_op(Op.JMP, end)
+            i += 2
+
+        if i != len(if_false):
+            self.push(false)
+            self.compile(if_false[-1])
 
         self.push(end)
 
@@ -69,24 +91,29 @@ class Compiler:
         self.compile(condition)
         self.push_op(Op.JNZ, while_body)
 
-    def call_expr(self, ast):
-        name = ast.children[0]
-        # TODO: check that function returns value
-        assert name in ('read', 'write')
+    def do_while(self, ast):
+        body, condition = ast.children
+        start = Label.gen('do_while')
+        self.push(start)
+        self.compile(body)
+        self.compile(condition)
+        self.push_op(Op.JNZ, start)
 
-        if name == 'read':
-            assert len(ast.children) == 1, 'read() builtin function expects no arguments'
-        elif name == 'write':
-            assert len(ast.children) == 2, 'write() builtin function expects a single argument'
-
+    def compile_native(self, ast):
         for arg in islice(reversed(ast.children), len(ast.children) - 1):
             self.compile(arg)
 
-        self.push_op(Op.CALL_NATIVE, Label(name))
+        self.push_op(Op.CALL_NATIVE, Label(ast.children[0]))
 
-    def call_statement(self, ast):
-        # TODO: check that function doesn't return values
-        self.call_expr(ast)
+    def compile_call(self, ast):
+        if ast.children[0] in NATIVE_FUNCTIONS:
+            self.compile_native(ast)
+            return
+
+        assert False, 'Not implemented'
+
+    call_expr = compile_call
+    call_statement = compile_call
 
     def binop(self, ast):
         assert len(ast.children) % 2 != 0, f'Invalid binop tree: {ast}'
