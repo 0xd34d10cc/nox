@@ -41,11 +41,25 @@ class Compiler:
         handler = getattr(self, ast.data, None) or getattr(self, ast.data + '_')
         handler(ast)
 
+    def program(self, ast):
+        main_marked = False
+        for node in ast.children:
+            if not main_marked and node.data != 'function':
+                self.push(Label('main'))
+                main_marked = True
+            self.compile(node)
+
+    def function(self, ast):
+        name, *args, body = ast.children
+        self.push(Label(name.value))
+        for arg in args:
+            self.push_op(Op.STORE, arg.value)
+        self.compile(body)
+        self.push_op(Op.RET)
+
     def block(self, ast):
         for statement in ast.children:
             self.compile(statement)
-
-    program = block
 
     def assign(self, ast):
         var, op, expr = ast.children
@@ -127,7 +141,10 @@ class Compiler:
             self.compile_native(ast)
             return
 
-        assert False, 'Not implemented'
+        name, *args = ast.children
+        for arg in reversed(args):
+            self.compile(arg)
+        self.push_op(Op.CALL, Label(name.value))
 
     call_expr = compile_call
     call_statement = compile_call

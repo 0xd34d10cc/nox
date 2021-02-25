@@ -42,7 +42,7 @@ for test_case in cases:
     assert program == bc.parse(str(program))
 
     out = io.StringIO()
-    state = bc.State(ip=0, stack=[], memory={})
+    state = bc.State(ip=program.entry, stack=[], callstack=[], memory={})
     with contextlib.redirect_stdout(out), use_as_stdin(inp):
         bc.execute(state, program)
 

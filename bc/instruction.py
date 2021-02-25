@@ -31,6 +31,7 @@ class Op(Enum):
     JNZ = 19
     CALL = 20
     CALL_NATIVE = 21
+    RET = 22
 
     def __str__(self):
         return self.name
@@ -66,27 +67,30 @@ class Instruction:
 
 @dataclass
 class Program:
-    __slots__ = ('source', 'instructions')
+    __slots__ = ('source', 'instructions', 'entry')
 
     source: List[Union[Instruction, Label]]
     instructions: List[Instruction]
+    entry: int
 
-    def build(instructions):
+    def build(instructions, entrypoint='main'):
         source = copy.deepcopy(instructions)
 
         labels = {}
         for i, instruction in enumerate(instructions):
             if type(instruction) is Label:
+                assert instruction.name not in labels, f'Label {instruction.name} defined twice'
                 labels[instruction.name] = i - len(labels)
 
         instructions = [i for i in instructions if type(i) is not Label]
         for instruction in instructions:
-            if instruction.op in (Op.JZ, Op.JNZ, Op.JMP):
+            if instruction.op in (Op.JZ, Op.JNZ, Op.JMP, Op.CALL):
                 assert len(instruction.args) == 1
                 target = labels[instruction.args[0].name]
                 instruction.args = (target,)
 
-        return Program(source, instructions)
+        entry = labels[entrypoint]
+        return Program(source, instructions, entry)
 
     def __str__(self):
         return '\n'.join(

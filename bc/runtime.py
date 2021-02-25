@@ -28,10 +28,11 @@ BUILTINS = {
 
 @dataclass
 class State:
-    __slots__ = ('ip', 'stack', 'memory')
+    __slots__ = ('ip', 'stack', 'callstack', 'memory')
 
     ip: int
     stack: List[int]
+    callstack: List[int]
     memory: Dict[str, int]
 
     def load(self, var):
@@ -76,7 +77,8 @@ class State:
         self.ip = target if self.stack.pop() else self.ip + 1
 
     def call(self, target):
-        assert False, 'Not implemented'
+        self.callstack.append(self.ip + 1)
+        self.ip = target
 
     def call_native(self, target):
         n_args = BUILTINS[target.name]
@@ -84,6 +86,9 @@ class State:
         handler = getattr(self, target.name, None) or getattr(self, target.name + '_')
         handler(*args)
         self.ip += 1
+
+    def ret(self):
+        self.ip = self.callstack.pop()
 
     # "native" functions
     def read(self):
