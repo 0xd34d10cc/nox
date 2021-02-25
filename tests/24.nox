@@ -1,8 +1,8 @@
-def test1() {
+fn test1() {
     a = 3
 }
 
-def test2(b) {
+fn test2(b) {
     a = b
 }
 

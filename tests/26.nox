@@ -1,13 +1,16 @@
 fn test1(a) {
     write(a)
+    print()
 }
 
 fn test2(b) {
     write(b)
+    print()
 }
 
 fn test3(c) {
     write(c)
+    print()
 }
 
 fn print() {
@@ -19,7 +22,6 @@ fn print() {
 a = 100
 b = 200
 c = 300
-
 test1(1)
 print()
 test2(2)

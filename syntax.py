@@ -6,7 +6,7 @@ language_grammar = '''
 
     ?program: function* statement*
 
-    function: "def" VAR "(" [VAR ("," VAR)*] ")" block
+    function: "fn" VAR "(" [VAR ("," VAR)*] ")" block
     ?block: "{" statement* "}"
     ?statement: assign | if_else | while | do_while | for | call_statement | pass
     if_else: "if" expr block ("else" "if" expr block)* ["else" block]
