@@ -1,3 +1,5 @@
+global a, b, c
+
 fn test1(a) {
     write(a)
     print()

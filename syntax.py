@@ -4,8 +4,9 @@ from lark import Lark
 language_grammar = '''
     ?start: program
 
-    ?program: function* statement*
+    ?program: global* function* statement*
 
+    global: "global" VAR ("," VAR)*
     function: "fn" VAR "(" [VAR ("," VAR)*] ")" block
     ?block: "{" statement* "}"
     ?statement: assign | if_else | while | do_while | for | call_statement | pass

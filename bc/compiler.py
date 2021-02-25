@@ -13,6 +13,7 @@ SYSCALLS = {
 @dataclass
 class Compiler:
     instructions: list = field(default_factory=list)
+    globals: set = field(default_factory=set)
     locals: list = field(default_factory=lambda: [set()])
 
     def push(self, instruction):
@@ -33,7 +34,12 @@ class Compiler:
 
             if token.type == 'VAR':
                 var = token.value
-                op = Op.LOAD if var in self.locals[-1] else Op.GLOAD
+                if var in self.locals[-1]:
+                    op = Op.LOAD
+                elif var in self.globals:
+                    op = Op.GLOAD
+                else:
+                    raise RuntimeError(f'Access to undefined variable "{token.value}" at {token.line}:{token.column}')
                 self.push_op(op, var)
                 return
 
@@ -46,15 +52,19 @@ class Compiler:
     def program(self, ast):
         main_marked = False
         for node in ast.children:
-            if not main_marked and node.data != 'function':
+            if not main_marked and node.data not in ('global', 'function'):
                 self.push(Label('main'))
                 main_marked = True
             self.compile(node)
 
+    def global_(self, ast):
+        for var in ast.children:
+            self.globals.add(var.value)
+
     def function(self, ast):
         name, *args, body = ast.children
-        self.push(Label(name.value))
         self.locals.append(set())
+        self.push(Label(name.value))
         for arg in args:
             self.locals[-1].add(arg.value)
             self.push_op(Op.STORE, arg.value)
@@ -69,7 +79,15 @@ class Compiler:
     def assign(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
-        op = Op.STORE if var.value in self.locals[-1] else Op.GSTORE
+        if var.value in self.locals[-1]:
+            op = Op.STORE
+        elif var.value in self.globals:
+            op = Op.GSTORE
+        else:
+            # new local variable
+            op = Op.STORE
+            self.locals[-1].add(var.value)
+
         self.push_op(op, var.value)
 
     def if_else(self, ast):

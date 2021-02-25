@@ -46,7 +46,7 @@ class State:
     stack: List[int] = field(default_factory=list)
     callstack: List[int] = field(default_factory=list)
     globals: Dict[str, int] = field(default_factory=dict)
-    locals: List[Dict[str, int]] = field(default_factory=list)
+    locals: List[Dict[str, int]] = field(default_factory=lambda: [{}])
 
     def load(self, var):
         assert type(var) is str

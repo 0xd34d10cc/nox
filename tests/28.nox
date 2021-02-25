@@ -1,4 +1,6 @@
-fn fact (n) {
+global result
+
+fn fact(n) {
     if n <= 1 {
         result = 1
     }
