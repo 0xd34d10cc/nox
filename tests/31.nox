@@ -1,0 +1,14 @@
+fn fact(n) {
+    if n <= 1 {
+        return 1
+    }
+    else {
+        return n * fact(n - 1)
+    }
+}
+
+n = read()
+for i = n, i >= 1, i = i - 1 {
+    write(i)
+    write(fact(i))
+}

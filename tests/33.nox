@@ -1,0 +1,14 @@
+fn test(n, m) {
+    s = 0
+    for i = 0, i <= n, i = i + 1 {
+        s = s + i
+
+        if s > m {
+            return s
+        }
+    }
+    return s
+}
+
+write(test(10, 100))
+write(test(100, 10))
