@@ -9,13 +9,14 @@ language_grammar = '''
     global: "global" VAR ("," VAR)*
     function: "fn" VAR "(" [VAR ("," VAR)*] ")" block
     ?block: "{" statement* "}"
-    ?statement: assign | if_else | while | do_while | for | call_statement | pass
+    ?statement: assign | if_else | while | do_while | for | call_statement | return | pass
     if_else: "if" expr block ("else" "if" expr block)* ["else" block]
     while: "while" expr block
     do_while: "do" block "while" expr
     for: "for" statement "," expr "," statement block
     assign: VAR ASSIGN expr
     call_statement: VAR "(" [expr ("," expr)*] ")"
+    return: "return" expr
     pass: "pass"
 
     ?expr: disj
@@ -24,7 +25,7 @@ language_grammar = '''
     ?cmp: sum ((LT|LE|GT|GE|EQ|NE) sum)*
     ?sum: product ((ADD|SUB) product)*
     ?product: atom ((MUL|DIV|MOD) atom)*
-    ?atom: SIGNED_INT | VAR | call_expr | "(" expr ")"
+    ?atom: SIGNED_INT | call_expr | VAR |  | "(" expr ")"
     call_expr: VAR "(" [expr ("," expr)*] ")"
 
     ADD: "+"

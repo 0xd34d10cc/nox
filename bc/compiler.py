@@ -150,6 +150,12 @@ class Compiler:
         self.compile(condition)
         self.push_op(Op.JNZ, for_body)
 
+    def return_(self, ast):
+        assert len(ast.children) in (0, 1)
+        if len(ast.children):
+            self.compile(ast.children[0])
+        self.push_op(Op.RET)
+
     def pass_(self, ast):
         # compiles to nothing
         pass
