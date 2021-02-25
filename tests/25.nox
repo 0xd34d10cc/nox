@@ -1,0 +1,28 @@
+def test1(a) {
+    write(a)
+}
+
+def test2(b) {
+    write(b)
+}
+
+def test3(c) {
+    write(c)
+}
+
+def print() {
+    write(a)
+    write(b)
+    write(c)
+}
+
+a = 100
+b = 200
+c = 300
+
+test1(1)
+print()
+test2(2)
+print()
+test3(3)
+print()
