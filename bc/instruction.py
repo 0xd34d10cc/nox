@@ -1,37 +1,39 @@
 import copy
 
-from enum import Enum
+from enum import Enum, auto
 from dataclasses import dataclass
 from typing import List, Dict, Union
 
 
 class Op(Enum):
     # Memory ops
-    LOAD = 1
-    STORE = 2
+    LOAD = auto()
+    STORE = auto()
+    GLOAD = auto()
+    GSTORE = auto()
     # Arithmetic ops
-    CONST = 3
-    ADD = 4
-    SUB = 5
-    MUL = 6
-    DIV = 7
-    MOD = 8
+    CONST = auto()
+    ADD = auto()
+    SUB = auto()
+    MUL = auto()
+    DIV = auto()
+    MOD = auto()
     # Logic ops
-    AND = 9
-    OR = 10
-    LT = 11
-    LE = 12
-    GT = 13
-    GE = 14
-    EQ = 15
-    NE = 16
+    AND = auto()
+    OR = auto()
+    LT = auto()
+    LE = auto()
+    GT = auto()
+    GE = auto()
+    EQ = auto()
+    NE = auto()
     # Jumps
-    JMP = 17
-    JZ = 18
-    JNZ = 19
-    CALL = 20
-    CALL_NATIVE = 21
-    RET = 22
+    JMP = auto()
+    JZ = auto()
+    JNZ = auto()
+    CALL = auto()
+    SYSCALL = auto()
+    RET = auto()
 
     def __str__(self):
         return self.name

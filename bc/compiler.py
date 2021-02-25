@@ -1,18 +1,18 @@
 from itertools import islice
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from lark import Token, Tree
 from .instruction import Program, Instruction, Op, Label
 
 
-# name -> n_args
-NATIVE_FUNCTIONS = {
-    'read',
-    'write'
+# name -> number
+SYSCALLS = {
+    'read': 0,
+    'write': 1
 }
 
 @dataclass
 class Compiler:
-    instructions: list
+    instructions: list = field(default_factory=list)
 
     def push(self, instruction):
         self.instructions.append(instruction)
@@ -32,7 +32,7 @@ class Compiler:
 
             if token.type == 'VAR':
                 var = token.value
-                self.push_op(Op.LOAD, var)
+                self.push_op(Op.GLOAD, var)
                 return
 
             assert False, f'Unexpected token: {token}'
@@ -53,7 +53,7 @@ class Compiler:
         name, *args, body = ast.children
         self.push(Label(name.value))
         for arg in args:
-            self.push_op(Op.STORE, arg.value)
+            self.push_op(Op.GSTORE, arg.value)
         self.compile(body)
         self.push_op(Op.RET)
 
@@ -64,7 +64,7 @@ class Compiler:
     def assign(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
-        self.push_op(Op.STORE, var.value)
+        self.push_op(Op.GSTORE, var.value)
 
     def if_else(self, ast):
         condition, if_true, *if_false = ast.children
@@ -130,21 +130,15 @@ class Compiler:
         # compiles to nothing
         pass
 
-    def compile_native(self, ast):
-        for arg in islice(reversed(ast.children), len(ast.children) - 1):
-            self.compile(arg)
-
-        self.push_op(Op.CALL_NATIVE, Label(ast.children[0]))
-
     def compile_call(self, ast):
-        if ast.children[0] in NATIVE_FUNCTIONS:
-            self.compile_native(ast)
-            return
-
         name, *args = ast.children
         for arg in reversed(args):
             self.compile(arg)
-        self.push_op(Op.CALL, Label(name.value))
+
+        if name.value in SYSCALLS:
+            self.push_op(Op.SYSCALL, SYSCALLS[name.value])
+        else:
+            self.push_op(Op.CALL, Label(name.value))
 
     call_expr = compile_call
     call_statement = compile_call
@@ -170,6 +164,6 @@ class Compiler:
 
 
 def compile(ast):
-    compiler = Compiler(instructions=[])
+    compiler = Compiler()
     compiler.compile(ast)
     return Program.build(compiler.instructions)

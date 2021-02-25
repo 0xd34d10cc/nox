@@ -15,7 +15,7 @@ def main(file):
     else:
         raise Exception(f'Unsupported file type: {file}')
 
-    state = bc.State(ip=program.entry, stack=[], callstack=[], memory={})
+    state = bc.State()
     bc.execute(state, program)
 
 if __name__ == '__main__':

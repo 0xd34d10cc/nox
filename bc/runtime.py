@@ -2,7 +2,7 @@ import operator
 import sys
 
 from typing import List, Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .instruction import Instruction, Op
 
 def binop(op):
@@ -20,28 +20,46 @@ def and_(l, r):
 def or_(l, r):
     return operator.truth(l or r)
 
-# name -> n_args
-BUILTINS = {
-    'read': 0,
-    'write': 1
-}
+SYSCALL_ARGS = [
+    0, # sys_read
+    1  # sys_Write
+]
+
+def sys_read(self):
+    value = input('I: ') if sys.stdin.isatty() else input()
+    self.stack.append(int(value))
+
+def sys_write(self, value):
+    if sys.stdout.isatty():
+        print(f'O: {value}')
+    else:
+        print(value)
+
+SYSCALLS = [
+    sys_read,
+    sys_write
+]
 
 @dataclass
 class State:
-    __slots__ = ('ip', 'stack', 'callstack', 'memory')
-
-    ip: int
-    stack: List[int]
-    callstack: List[int]
-    memory: Dict[str, int]
+    ip: int = field(default=0)
+    stack: List[int] = field(default_factory=list)
+    callstack: List[int] = field(default_factory=list)
+    memory: Dict[str, int] = field(default_factory=dict)
 
     def load(self, var):
+        assert False, 'Not implemented'
+
+    def store(self, var):
+        assert False, 'Not implemented'
+
+    def gload(self, var):
         assert type(var) is str
         val = self.memory[var]
         self.stack.append(val)
         self.ip += 1
 
-    def store(self, var):
+    def gstore(self, var):
         assert type(var) is str
         val = self.stack.pop()
         self.memory[var] = val
@@ -80,26 +98,15 @@ class State:
         self.callstack.append(self.ip + 1)
         self.ip = target
 
-    def call_native(self, target):
-        n_args = BUILTINS[target.name]
+    def syscall(self, number):
+        n_args = SYSCALL_ARGS[number]
         args = tuple(self.stack.pop() for _ in range(n_args))
-        handler = getattr(self, target.name, None) or getattr(self, target.name + '_')
-        handler(*args)
+        handler = SYSCALLS[number]
+        handler(self, *args)
         self.ip += 1
 
     def ret(self):
         self.ip = self.callstack.pop()
-
-    # "native" functions
-    def read(self):
-        value = input('I: ') if sys.stdin.isatty() else input()
-        self.stack.append(int(value))
-
-    def write(self, value):
-        if sys.stdout.isatty():
-            print(f'O: {value}')
-        else:
-            print(value)
 
 def getop(op):
     op = str(op).lower()
@@ -108,6 +115,7 @@ def getop(op):
 HANDLERS = {op: getop(op) for op in Op}
 
 def execute(state, program, handlers=HANDLERS):
+    state.ip = program.entry
     while state.ip < len(program.instructions):
         instruction = program.instructions[state.ip]
         handlers[instruction.op](state, *instruction.args)
