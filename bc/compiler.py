@@ -13,6 +13,7 @@ SYSCALLS = {
 @dataclass
 class Compiler:
     instructions: list = field(default_factory=list)
+    locals: list = field(default_factory=lambda: [set()])
 
     def push(self, instruction):
         self.instructions.append(instruction)
@@ -32,7 +33,8 @@ class Compiler:
 
             if token.type == 'VAR':
                 var = token.value
-                self.push_op(Op.GLOAD, var)
+                op = Op.LOAD if var in self.locals[-1] else Op.GLOAD
+                self.push_op(op, var)
                 return
 
             assert False, f'Unexpected token: {token}'
@@ -52,10 +54,13 @@ class Compiler:
     def function(self, ast):
         name, *args, body = ast.children
         self.push(Label(name.value))
+        self.locals.append(set())
         for arg in args:
-            self.push_op(Op.GSTORE, arg.value)
+            self.locals[-1].add(arg.value)
+            self.push_op(Op.STORE, arg.value)
         self.compile(body)
         self.push_op(Op.RET)
+        self.locals.pop()
 
     def block(self, ast):
         for statement in ast.children:
@@ -64,7 +69,8 @@ class Compiler:
     def assign(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
-        self.push_op(Op.GSTORE, var.value)
+        op = Op.STORE if var.value in self.locals[-1] else Op.GSTORE
+        self.push_op(op, var.value)
 
     def if_else(self, ast):
         condition, if_true, *if_false = ast.children

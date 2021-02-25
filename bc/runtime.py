@@ -22,7 +22,7 @@ def or_(l, r):
 
 SYSCALL_ARGS = [
     0, # sys_read
-    1  # sys_Write
+    1  # sys_write
 ]
 
 def sys_read(self):
@@ -45,24 +45,31 @@ class State:
     ip: int = field(default=0)
     stack: List[int] = field(default_factory=list)
     callstack: List[int] = field(default_factory=list)
-    memory: Dict[str, int] = field(default_factory=dict)
+    globals: Dict[str, int] = field(default_factory=dict)
+    locals: List[Dict[str, int]] = field(default_factory=list)
 
     def load(self, var):
-        assert False, 'Not implemented'
+        assert type(var) is str
+        val = self.locals[-1][var]
+        self.stack.append(val)
+        self.ip += 1
 
     def store(self, var):
-        assert False, 'Not implemented'
+        assert type(var) is str
+        val = self.stack.pop()
+        self.locals[-1][var] = val
+        self.ip += 1
 
     def gload(self, var):
         assert type(var) is str
-        val = self.memory[var]
+        val = self.globals[var]
         self.stack.append(val)
         self.ip += 1
 
     def gstore(self, var):
         assert type(var) is str
         val = self.stack.pop()
-        self.memory[var] = val
+        self.globals[var] = val
         self.ip += 1
 
     def const(self, val):
@@ -95,6 +102,7 @@ class State:
         self.ip = target if self.stack.pop() else self.ip + 1
 
     def call(self, target):
+        self.locals.append({})
         self.callstack.append(self.ip + 1)
         self.ip = target
 
@@ -106,6 +114,7 @@ class State:
         self.ip += 1
 
     def ret(self):
+        self.locals.pop()
         self.ip = self.callstack.pop()
 
 def getop(op):
