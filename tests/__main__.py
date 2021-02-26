@@ -44,7 +44,7 @@ for test_case in cases:
     out = io.StringIO()
     state = bc.State()
     with contextlib.redirect_stdout(out), use_as_stdin(inp):
-        bc.execute(state, program)
+        assert bc.execute(state, program) == 0
 
     assert len(state.stack) == 0, str(stack)
     actual_output = out.getvalue()

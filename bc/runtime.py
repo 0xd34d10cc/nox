@@ -30,9 +30,17 @@ def sys_write(self, value):
     else:
         print(value)
 
+class ExitCode(Exception):
+    def __init__(self, code):
+        self.code = code
+
+def sys_exit(self, value):
+    raise ExitCode(value)
+
 SYSCALLS = [
     (sys_read, 0),
-    (sys_write, 1)
+    (sys_write, 1),
+    (sys_exit, 1)
 ]
 
 @dataclass
@@ -128,6 +136,9 @@ HANDLERS = {op: getop(op) for op in Op}
 
 def execute(state, program, handlers=HANDLERS):
     state.ip = program.entry
-    while state.ip < len(program.instructions):
-        instruction = program.instructions[state.ip]
-        handlers[instruction.op](state, *instruction.args)
+    try:
+        while True:
+            instruction = program.instructions[state.ip]
+            handlers[instruction.op](state, *instruction.args)
+    except ExitCode as e:
+        return e.code

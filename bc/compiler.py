@@ -7,7 +7,8 @@ from .instruction import Program, Instruction, Op, Label
 # name -> number
 SYSCALLS = {
     'read': 0,
-    'write': 1
+    'write': 1,
+    'exit': 2
 }
 
 @dataclass
@@ -55,8 +56,13 @@ class Compiler:
         for node in ast.children:
             if not main_marked and node.data not in ('global', 'function'):
                 self.push(Label('main'))
+                self.push_op(Op.ENTER, 'proc')
                 main_marked = True
             self.compile(node)
+
+        self.push_op(Op.CONST, 0)
+        self.push_op(Op.SYSCALL, SYSCALLS['exit'])
+        self.push_op(Op.LEAVE)
 
     def global_(self, ast):
         for var in ast.children:
