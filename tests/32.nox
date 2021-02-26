@@ -1,4 +1,4 @@
-fn ack(m, n) {
+fn ack(m, n) -> int {
     if m == 0 {
         return n + 1
     }

@@ -34,6 +34,9 @@ class Op(Enum):
     CALL = auto()
     SYSCALL = auto()
     RET = auto()
+    # Function boundaries
+    ENTER = auto()
+    LEAVE = auto()
 
     def __str__(self):
         return self.name.lower()
@@ -65,7 +68,9 @@ class Instruction:
         self.args = args
 
     def __str__(self):
-        return f'{self.op} {",".join(str(arg) for arg in self.args)}'
+        if self.op is Op.ENTER:
+            return f'{self.op} {self.args[0]}({", ".join(str(arg) for arg in self.args[1:])})'
+        return f'{self.op} {", ".join(str(arg) for arg in self.args)}'
 
 @dataclass
 class Program:

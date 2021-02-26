@@ -34,7 +34,11 @@ bytecode_grammar = '''
         | "call" label      -> call
         | "syscall" num     -> syscall
         | "ret"             -> ret
+        | "leave"           -> leave
+        | "enter" fn_tag "(" [var ("," var)*] ")" -> enter
 
+    fn_tag: "fn" -> fn
+        | "proc" -> proc
     var: CNAME -> var
     num: SIGNED_INT -> number
 
@@ -52,6 +56,11 @@ def make_handler(op):
         return Instruction(op, *args)
     return handler
 
+def const(val):
+    def handler(self, *args):
+        return val
+    return handler
+
 @v_args(inline=True)
 class BytecodeTransformer(Transformer):
     def program(self, *instructions):
@@ -60,6 +69,8 @@ class BytecodeTransformer(Transformer):
     number  = int
     var     = str
     label   = Label
+    fn      = const('fn')
+    proc    = const('proc')
 
     load    = make_handler(Op.LOAD)
     store   = make_handler(Op.STORE)
@@ -88,6 +99,9 @@ class BytecodeTransformer(Transformer):
     call    = make_handler(Op.CALL)
     syscall = make_handler(Op.SYSCALL)
     ret     = make_handler(Op.RET)
+
+    enter   = make_handler(Op.ENTER)
+    leave   = make_handler(Op.LEAVE)
 
 bytecode_parser = Lark(
     bytecode_grammar,

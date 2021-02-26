@@ -15,6 +15,7 @@ class Compiler:
     instructions: list = field(default_factory=list)
     globals: set = field(default_factory=set)
     locals: list = field(default_factory=lambda: [set()])
+    is_fn: bool = field(default=False)
 
     def push(self, instruction):
         self.instructions.append(instruction)
@@ -62,14 +63,23 @@ class Compiler:
             self.globals.add(var.value)
 
     def function(self, ast):
-        name, *args, body = ast.children
-        self.locals.append(set())
+        if len(ast.children) == 3:
+            name, args, body = ast.children
+            ret = None
+        elif len(ast.children) == 4:
+            name, args, ret, body = ast.children
+        else:
+            assert False, len(ast)
+
         self.push(Label(name.value))
-        for arg in args:
-            self.locals[-1].add(arg.value)
-            self.push_op(Op.STORE, arg.value)
+        args = [arg.value for arg in args.children]
+        self.locals.append(set(args))
+        self.push_op(Op.ENTER, "fn" if ret else "proc", *args)
+        self.is_fn = ret is not None
         self.compile(body)
-        self.push_op(Op.RET)
+        if self.instructions[-1] is not Instruction or self.instructions[-1].op is not Op.RET:
+            self.push_op(Op.RET)
+        self.push_op(Op.LEAVE)
         self.locals.pop()
 
     def block(self, ast):
@@ -153,7 +163,9 @@ class Compiler:
     def return_(self, ast):
         assert len(ast.children) in (0, 1)
         if len(ast.children):
-            self.compile(ast.children[0])
+            ret = ast.children[0]
+            assert self.is_fn, f'Attempt to return value from procedure at {ret.line}:{ret.column}'
+            self.compile(ret)
         self.push_op(Op.RET)
 
     def pass_(self, ast):

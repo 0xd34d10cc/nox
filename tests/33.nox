@@ -1,4 +1,4 @@
-fn test(n, m) {
+fn test(n, m) -> int {
     s = 0
     for i = 0, i <= n, i = i + 1 {
         s = s + i

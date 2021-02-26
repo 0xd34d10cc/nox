@@ -6,7 +6,7 @@ fn print() {
     write(c)
 }
 
-fn test1 (a) {
+fn test1(a) {
     write(a)
     print()
     write(a)

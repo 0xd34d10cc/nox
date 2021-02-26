@@ -97,7 +97,6 @@ class State:
         self.ip = target if self.stack.pop() else self.ip + 1
 
     def call(self, target):
-        self.locals.append({})
         self.callstack.append(self.ip + 1)
         self.ip = target
 
@@ -110,6 +109,16 @@ class State:
     def ret(self):
         self.locals.pop()
         self.ip = self.callstack.pop()
+
+    def enter(self, scope_type, *args):
+        self.locals.append({
+            arg: self.stack.pop()
+            for arg in args
+        })
+        self.ip += 1
+
+    def leave(self):
+        assert False, "Should be unreachable"
 
 def getop(op):
     op = str(op)

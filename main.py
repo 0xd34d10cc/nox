@@ -26,7 +26,7 @@ def assemble(program):
     subprocess.run([assembler, '-f', 'win64', program], check=True)
     obj = os.path.splitext(program)[0] + '.obj'
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
-    subprocess.run([linker, obj, '/subsystem:console', '/entry:_main', kernel32], check=True)
+    subprocess.run([linker, obj, '/subsystem:console', '/entry:main', kernel32], check=True)
     os.remove(obj)
 
 def main(file):

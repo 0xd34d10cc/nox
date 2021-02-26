@@ -7,7 +7,9 @@ language_grammar = '''
     ?program: global* function* statement*
 
     global: "global" VAR ("," VAR)*
-    function: "fn" VAR "(" [VAR ("," VAR)*] ")" block
+    function: "fn" VAR "(" args  ")" ["->" typename] block
+    args: [VAR ("," VAR)*]
+    typename: "int"
     ?block: "{" statement* "}"
     ?statement: assign | if_else | while | do_while | for | call_statement | return | pass
     if_else: "if" expr block ("else" "if" expr block)* ["else" block]
