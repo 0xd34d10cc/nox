@@ -40,7 +40,7 @@ class Compiler:
                 elif var in self.globals:
                     op = Op.GLOAD
                 else:
-                    raise RuntimeError(f'Access to undefined variable "{token.value}" at {token.line}:{token.column}')
+                    assert False, f'Undefined "{token.value}" at {token.line}:{token.column}'
                 self.push_op(op, var)
                 return
 
@@ -77,7 +77,8 @@ class Compiler:
         self.push_op(Op.ENTER, "fn" if ret else "proc", *args)
         self.is_fn = ret is not None
         self.compile(body)
-        if self.instructions[-1] is not Instruction or self.instructions[-1].op is not Op.RET:
+        last = self.instructions[-1]
+        if type(last) is Label or last.op is not Op.RET:
             self.push_op(Op.RET)
         self.push_op(Op.LEAVE)
         self.locals.pop()
