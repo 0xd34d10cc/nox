@@ -10,30 +10,30 @@ bytecode_grammar = '''
     ?item: instruction | jmp_label
     jmp_label: var ":" -> label
     label: var -> label
-    instruction: "LOAD" var -> load
-        | "STORE" var       -> store
-        | "GLOAD" var       -> gload
-        | "GSTORE" var      -> gstore
-        | "CONST" num       -> const
-        | "ADD"             -> add
-        | "SUB"             -> sub
-        | "MUL"             -> mul
-        | "DIV"             -> div
-        | "MOD"             -> mod
-        | "AND"             -> and_
-        | "OR"              -> or_
-        | "LT"              -> lt
-        | "LE"              -> le
-        | "GT"              -> gt
-        | "GE"              -> ge
-        | "EQ"              -> eq
-        | "NE"              -> ne
-        | "JMP" label       -> jmp
-        | "JZ" label        -> jz
-        | "JNZ" label       -> jnz
-        | "CALL" label      -> call
-        | "SYSCALL" num     -> syscall
-        | "RET"             -> ret
+    instruction: "load" var -> load
+        | "store" var       -> store
+        | "gload" var       -> gload
+        | "gstore" var      -> gstore
+        | "const" num       -> const
+        | "add"             -> add
+        | "sub"             -> sub
+        | "mul"             -> mul
+        | "div"             -> div
+        | "mod"             -> mod
+        | "and"             -> and_
+        | "or"              -> or_
+        | "lt"              -> lt
+        | "le"              -> le
+        | "gt"              -> gt
+        | "ge"              -> ge
+        | "eq"              -> eq
+        | "ne"              -> ne
+        | "jmp" label       -> jmp
+        | "jz" label        -> jz
+        | "jnz" label       -> jnz
+        | "call" label      -> call
+        | "syscall" num     -> syscall
+        | "ret"             -> ret
 
     var: CNAME -> var
     num: SIGNED_INT -> number

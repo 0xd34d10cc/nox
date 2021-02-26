@@ -20,11 +20,6 @@ def and_(l, r):
 def or_(l, r):
     return operator.truth(l or r)
 
-SYSCALL_ARGS = [
-    0, # sys_read
-    1  # sys_write
-]
-
 def sys_read(self):
     value = input('I: ') if sys.stdin.isatty() else input()
     self.stack.append(int(value))
@@ -36,8 +31,8 @@ def sys_write(self, value):
         print(value)
 
 SYSCALLS = [
-    sys_read,
-    sys_write
+    (sys_read, 0),
+    (sys_write, 1)
 ]
 
 @dataclass
@@ -107,9 +102,8 @@ class State:
         self.ip = target
 
     def syscall(self, number):
-        n_args = SYSCALL_ARGS[number]
+        handler, n_args = SYSCALLS[number]
         args = tuple(self.stack.pop() for _ in range(n_args))
-        handler = SYSCALLS[number]
         handler(self, *args)
         self.ip += 1
 
@@ -118,7 +112,7 @@ class State:
         self.ip = self.callstack.pop()
 
 def getop(op):
-    op = str(op).lower()
+    op = str(op)
     return getattr(State, op, None) or getattr(State, op + '_')
 
 HANDLERS = {op: getop(op) for op in Op}

@@ -36,7 +36,7 @@ class Op(Enum):
     RET = auto()
 
     def __str__(self):
-        return self.name
+        return self.name.lower()
 
 @dataclass
 class Label:
