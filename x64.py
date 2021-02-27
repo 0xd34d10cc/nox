@@ -244,13 +244,16 @@ def functions(program):
         if instruction.op is Op.ENTER:
             name = program.source[i - 1].name
             args = instruction.args[1:]
-            locals = set()
+            locals = {}
             returns_value = instruction.args[0] == 'fn'
             start = i
         elif instruction.op is Op.STORE:
-            locals.add(instruction.args[0])
+            name = instruction.args[0]
+            if name not in locals:
+                locals[name] = i
         elif instruction.op is Op.LEAVE:
-            funcs[name] = Fn(name, args, list(locals), returns_value, start, end=i+1)
+            locals = sorted(locals, key=lambda n: locals[n])
+            funcs[name] = Fn(name, args, locals, returns_value, start, end=i+1)
     return funcs
 
 
