@@ -179,7 +179,7 @@ class Compiler:
         # compiles to nothing
         pass
 
-    def compile_call(self, ast):
+    def call(self, ast):
         name, *args = ast.children
         for arg in reversed(args):
             self.compile(arg)
@@ -189,8 +189,8 @@ class Compiler:
         else:
             self.push_op(Op.CALL, Label(name.value))
 
-    call_expr = compile_call
-    call_statement = compile_call
+    call_expr = call
+    call_statement = call
 
     def binop(self, ast):
         assert len(ast.children) % 2 != 0, f'Invalid binop tree: {ast}'
