@@ -20,7 +20,10 @@ GET_STDOUT EQU -11
 
 ; Initialized data segment
 section .data
-    EXAMPLE db "  142 a"
+    PARSE_INT_FAIL db "Failed to parse integer", 0xa
+    PARSE_INT_FAIL_LEN EQU $-PARSE_INT_FAIL
+
+    EXAMPLE db "  42 "
     EXAMPLE_LEN EQU $-EXAMPLE ; Address of this line ($) - address of SPACES
 
 ; Uninitialized data segment
@@ -43,6 +46,31 @@ sys_setup:
     mov     [rel STDOUT], rax
     add     rsp, 32                                  ; Remove the 32 bytes
     ret
+
+; panic(char* s, int lne)
+panic:
+    call write_str
+    mov rcx, -1
+    call sys_exit
+; end panic()
+
+; void write_str(char* s, int len)
+write_str:
+    sub rsp, 16 ; written + 5th parameter
+
+    mov r8, rdx            ; len
+    mov rdx, rcx           ; msg
+    mov rcx, [rel STDOUT]  ; out
+    lea r9, [rsp + 8]      ; written
+    mov qword [rsp], 0           ; overlapped
+
+    sub rsp, 32 ; shadow space
+    ; FIXME: this function assumes written == len
+    call WriteFile
+
+    add rsp, 32+16
+    ret
+; end write_str()
 
 ; int skip_spaces(char* s, int len)
 skip_spaces:
@@ -144,6 +172,13 @@ sys_read:
     mov rdx, EXAMPLE_LEN
     mov r8, rsp
     call parse_int
+    cmp byte [rsp], 0
+    jnz sys_read_ret
+    mov rcx, PARSE_INT_FAIL
+    mov rdx, PARSE_INT_FAIL_LEN
+    call panic
+
+sys_read_ret:
     add rsp, 8
     ret
 
@@ -154,19 +189,3 @@ sys_write:
 ; void sys_exit(int code)
 sys_exit:
     jmp ExitProcess
-
-; main:
-;     sub   rsp, 8                                   ; Align the stack to a multiple of 16 bytes
-
-;     sub   rsp, 32 + 8 + 8                          ; Shadow space + 5th parameter + align stack
-;                                                    ; to a multiple of 16 bytes
-;     mov   rcx, [rel STDOUT]                        ; 1st parameter
-;     lea   rdx, [rel MSG]                           ; 2nd parameter
-;     mov   r8, LEN                                  ; 3rd parameter
-;     lea   r9, [rel WRITTEN]                        ; 4th parameter
-;     mov   qword [rsp + 4 * 8], NULL                ; 5th parameter
-;     call  WriteFile                                ; Output can be redirect to a file using >
-;     add   rsp, 48                                  ; Remove the 48 bytes
-
-;     xor   rcx, rcx
-;     call  ExitProcess
