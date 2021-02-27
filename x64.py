@@ -104,7 +104,7 @@ class Compiler:
         for i in range(fn.start, fn.end):
             instruction = self.program.source[i]
             if type(instruction) is Label:
-                    self.line(name + ':')
+                self.line(name + ':')
             else:
                 assert type(instruction) is Instruction
                 n = str(instruction.op)
@@ -113,11 +113,11 @@ class Compiler:
 
     def compile_call(self, fn):
         n_args = len(fn.args)
-        args = list(reversed([self.pop() for _ in range(n_args)]))
+        assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
+
+        args = reversed([self.pop() for _ in range(n_args)])
         for dst, src in zip(args_regs, args):
             self.asm(f'mov {dst}, {src}')
-
-        assert len(args) < len(args_regs)
 
         regs_to_save = self.active_registers()
         for reg in regs_to_save:
