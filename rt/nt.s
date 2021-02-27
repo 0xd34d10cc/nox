@@ -62,7 +62,7 @@ write_str:
     mov rdx, rcx           ; msg
     mov rcx, [rel STDOUT]  ; out
     lea r9, [rsp + 8]      ; written
-    mov qword [rsp], 0           ; overlapped
+    mov qword [rsp], 0     ; overlapped
 
     sub rsp, 32 ; shadow space
     ; FIXME: this function assumes written == len
@@ -123,6 +123,11 @@ parse_int:
     jz parse_int_fail
 
 parse_int_start_parsing:
+    cmp byte [rcx], 48 ; '0'
+    jb parse_int_fail
+    cmp byte [rcx], 57 ; '9'
+    ja parse_int_fail
+
     ; res = 0
     xor rax, rax
 parse_int_body:
@@ -173,14 +178,14 @@ sys_read:
     mov r8, rsp
     call parse_int
     cmp byte [rsp], 0
-    jnz sys_read_ret
+    je sys_read_fail
+    add rsp, 8
+    ret
+
+sys_read_fail:
     mov rcx, PARSE_INT_FAIL
     mov rdx, PARSE_INT_FAIL_LEN
     call panic
-
-sys_read_ret:
-    add rsp, 8
-    ret
 
 ; void sys_write(int num)
 sys_write:
