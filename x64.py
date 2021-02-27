@@ -112,17 +112,24 @@ class Compiler:
                 handler(*instruction.args)
 
     def compile_call(self, fn):
-        # TODO: save live registers
-        # TODO: save non-volatile args registers
         n_args = len(fn.args)
         args = list(reversed([self.pop() for _ in range(n_args)]))
         for dst, src in zip(args_regs, args):
             self.asm(f'mov {dst}, {src}')
+
         assert len(args) < len(args_regs)
+
+        regs_to_save = self.active_registers()
+        for reg in regs_to_save:
+            self.asm(f'push {reg}')
+
         self.asm(f'call {fn.name}')
         if fn.returns_value:
             dst = self.allocate()
             self.asm(f'mov {dst}, {Reg.RAX}')
+
+        for reg in reversed(regs_to_save):
+            self.asm(f'pop {reg}')
 
     def syscall(self, n):
         self.compile_call(syscalls[n])
@@ -149,30 +156,6 @@ class Compiler:
             ret = self.pop()
             self.asm(f'mov {Reg.RAX}, {ret}')
         self.asm(f'ret')
-
-    def line(self, line):
-        self.listing += line + '\n'
-
-    def asm(self, line):
-        instruction, *ops = line.split()
-        self.line(f'    {instruction:<7} {" ".join(ops)}')
-
-    def location(self, var):
-        fn = self.functions[self.current]
-        i = try_find(fn.args, var)
-        if i is not None:
-            if i < len(args_regs):
-                return args_regs[i]
-            else:
-                offset = i - len(args_regs)
-                # TODO: figure out what offset we should actually use
-                return StackLocation(i + 2) # 1 for rbp, 1 for rip
-
-        i = try_find(fn.locals, var)
-        if i is not None:
-            return StackLocation(-i)
-
-        assert False, 'Not implemented'
 
     def load(self, var):
         loc = self.location(var)
@@ -228,6 +211,34 @@ class Compiler:
             self.regs.append(operand)
         return operand
 
+    def active_registers(self):
+        n_args = len(self.functions[self.current].args)
+        return [r for r in self.stack if type(r) is Reg] + args_regs[:n_args]
+
+    def line(self, line):
+        self.listing += line + '\n'
+
+    def asm(self, line):
+        instruction, *ops = line.split()
+        self.line(f'    {instruction:<7} {" ".join(ops)}')
+
+    def location(self, var):
+        fn = self.functions[self.current]
+        i = try_find(fn.args, var)
+        if i is not None:
+            if i < len(args_regs):
+                return args_regs[i]
+            else:
+                offset = i - len(args_regs)
+                # TODO: figure out what offset we should actually use
+                return StackLocation(i + 2) # 1 for rbp, 1 for rip
+
+        i = try_find(fn.locals, var)
+        if i is not None:
+            return StackLocation(-i)
+
+        assert False, 'Not implemented'
+
 
 def functions(program):
     funcs = {}
@@ -248,9 +259,9 @@ def functions(program):
             returns_value = instruction.args[0] == 'fn'
             start = i
         elif instruction.op is Op.STORE:
-            name = instruction.args[0]
-            if name not in locals:
-                locals[name] = i
+            n = instruction.args[0]
+            if n not in locals:
+                locals[n] = i
         elif instruction.op is Op.LEAVE:
             locals = sorted(locals, key=lambda n: locals[n])
             funcs[name] = Fn(name, args, locals, returns_value, start, end=i+1)
