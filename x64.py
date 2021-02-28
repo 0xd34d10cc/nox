@@ -153,6 +153,7 @@ def logical_binop(op):
 @dataclass
 class Compiler:
     program: Program
+    globals: set
     functions: Dict[str, Fn]
     current: str = field(default=None)
 
@@ -161,6 +162,12 @@ class Compiler:
     listing: str = field(default=base_listing)
 
     def compile(self):
+        if len(self.globals):
+            self.line('section .data')
+            for var in self.globals:
+                self.asm(f'{var:<8} dq 0')
+            self.line('')
+
         fns = sorted(self.functions.values(), key=lambda f: f.start)
         self.line('section .text')
         for f in fns:
@@ -184,13 +191,13 @@ class Compiler:
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
 
+        regs_to_save = [r for r in self.stack[n_args:] if type(r) is Reg] + args_regs[:n_args]
+        for reg in regs_to_save:
+            self.asm(f'push {reg}')
+
         args = [self.pop() for _ in range(n_args)]
         for dst, src in zip(args_regs, args):
             self.asm(f'mov {dst}, {src}')
-
-        regs_to_save = self.active_registers()
-        for reg in regs_to_save:
-            self.asm(f'push {reg}')
 
         self.asm(f'call {fn.name}')
         if fn.returns_value:
@@ -240,6 +247,20 @@ class Compiler:
         loc = self.location(var)
         if type(loc) is Reg or type(top) is Reg:
             self.asm(f'mov {loc}, {top}')
+        else:
+            assert False, 'Not implemented'
+
+    def gload(self, var):
+        dst = self.allocate()
+        if type(dst) is Reg:
+            self.asm(f'mov {dst}, [rel {var}]')
+        else:
+            assert False, 'Not implemented'
+
+    def gstore(self, var):
+        top = self.pop()
+        if type(top) is Reg:
+            self.asm(f'mov [rel {var}], {top}')
         else:
             assert False, 'Not implemented'
 
@@ -301,10 +322,6 @@ class Compiler:
             self.regs.append(operand)
         return operand
 
-    def active_registers(self):
-        n_args = len(self.functions[self.current].args)
-        return [r for r in self.stack if type(r) is Reg] + args_regs[:n_args]
-
     def line(self, line):
         self.listing += line + '\n'
 
@@ -325,7 +342,7 @@ class Compiler:
 
         i = try_find(fn.locals, var)
         if i is not None:
-            return StackLocation(-i)
+            return StackLocation(-1 - -i)
 
         assert False, 'Not implemented'
 
@@ -357,9 +374,17 @@ def functions(program):
             funcs[name] = Fn(name, args, locals, returns_value, start, end=i+1)
     return funcs
 
+def list_globals(program):
+    globals = set()
+    for instruction in program.source:
+        if type(instruction) is Label:
+            continue
+        if instruction.op in (Op.GLOAD, Op.GSTORE):
+            globals.add(instruction.args[0])
+    return globals
 
 def compile(program):
-    compiler = Compiler(program, functions(program))
+    compiler = Compiler(program, list_globals(program), functions(program))
     return compiler.compile()
 
 
