@@ -106,12 +106,12 @@ def comparison(op):
     def handler(self):
         r = self.pop()
         l = self.pop()
-        res = self.allocate()
 
         if type(l) is Reg:
             self.asm(f'cmp {l}, {r}')
-            self.asm(f'{op} {res.r8()}')
-            self.asm(f'and {res}, 0x1')
+            self.asm(f'{op} {l.r8()}')
+            self.asm(f'and {l}, 0x1')
+            self.push(l)
         else:
             assert False, 'Not implemented'
     return handler
@@ -122,6 +122,20 @@ def cjump(op):
         assert type(val) is Reg
         self.asm(f'test {val}, {val}')
         self.asm(f'{op} {label}')
+    return handler
+
+def logical_binop(op):
+    def handler(self):
+        r = self.pop()
+        l = self.pop()
+        assert type(r) is Reg
+        assert type(l) is Reg
+        for reg in r, l:
+            self.asm(f'test {reg}, {reg}')
+            self.asm(f'setne {reg.r8()}')
+        self.asm(f'{op} {l}, {r}')
+        self.asm(f'and {l}, 0xff')
+        self.push(l)
     return handler
 
 @dataclass
@@ -158,7 +172,7 @@ class Compiler:
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
 
-        args = reversed([self.pop() for _ in range(n_args)])
+        args = [self.pop() for _ in range(n_args)]
         for dst, src in zip(args_regs, args):
             self.asm(f'mov {dst}, {src}')
 
@@ -173,6 +187,9 @@ class Compiler:
 
         for reg in reversed(regs_to_save):
             self.asm(f'pop {reg}')
+
+    def call(self, label):
+        self.compile_call(self.functions[label.name])
 
     def syscall(self, n):
         self.compile_call(syscalls[n])
@@ -193,11 +210,9 @@ class Compiler:
     def leave(self):
         fn = self.functions[self.current]
         n_locals = len(fn.locals)
+        self.line(f'{fn.name}_epilogue:')
         self.asm(f'add {Reg.RSP}, {n_locals*word_size}')
         self.asm(f'pop {Reg.RBP}')
-        if fn.returns_value:
-            ret = self.pop()
-            self.asm(f'mov {Reg.RAX}, {ret}')
         self.asm(f'ret')
 
     def load(self, var):
@@ -224,6 +239,9 @@ class Compiler:
     sub = binop('sub')
     mul = binop('imul')
 
+    and_ = logical_binop('and')
+    or_  = logical_binop('or')
+
     lt = comparison('setl')
     le = comparison('setle')
     gt = comparison('setg')
@@ -236,6 +254,13 @@ class Compiler:
 
     jz  = cjump('jz')
     jnz = cjump('jnz')
+
+    def ret(self):
+        fn = self.functions[self.current]
+        if fn.returns_value:
+            ret = self.pop()
+            self.asm(f'mov {Reg.RAX}, {ret}')
+        self.asm(f'jmp {fn.name}_epilogue')
 
     def allocate(self):
         if self.regs:

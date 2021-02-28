@@ -84,7 +84,7 @@ class Compiler:
         self.is_fn = ret is not None
         self.compile(body)
         last = self.instructions[-1]
-        if type(last) is Label or last.op is not Op.RET:
+        if not ret:
             self.push_op(Op.RET)
         self.push_op(Op.LEAVE)
         self.locals.pop()
