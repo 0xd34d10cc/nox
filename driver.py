@@ -53,13 +53,11 @@ def main(file):
         program = bc.compile(program)
     elif file.endswith('.noxbc'):
         program = bc.parse(program)
+        program = x64.compile(program)
     else:
         raise Exception(f'Unsupported file type: {file}')
 
-    x64.compile(program)
-    # state = bc.State()
-    # code = bc.execute(state, program)
-    # print(f'Finished with code {code}')
+    print(program)
 
 if __name__ == '__main__':
     main(*sys.argv[1:])

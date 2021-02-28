@@ -36,6 +36,15 @@ class Reg(Enum):
     def __str__(self):
         return self.name.lower()
 
+    def r8(self):
+        s = str(self)
+        if s[1].isdigit():
+            return s + 'b'
+        elif s[1] in 'abcd':
+            return s[1] + 'l'
+        else:
+            return s[1:] + 'l'
+
 word_size = 8
 
 special_regs = [
@@ -81,6 +90,40 @@ base_listing = 'global main\n\n' + \
                 'extern sys_setup\n' + \
     '\n'.join(f'extern {syscall.name}' for syscall in syscalls.values()) + '\n\n'
 
+
+def binop(op):
+    def handler(self):
+        r = self.pop()
+        l = self.pop()
+        if type(l) is Reg:
+            self.asm(f'{op} {l}, {r}')
+            self.push(l)
+        else:
+            assert False, 'Not implemented'
+    return handler
+
+def comparison(op):
+    def handler(self):
+        r = self.pop()
+        l = self.pop()
+        res = self.allocate()
+
+        if type(l) is Reg:
+            self.asm(f'cmp {l}, {r}')
+            self.asm(f'{op} {res.r8()}')
+            self.asm(f'and {res}, 0x1')
+        else:
+            assert False, 'Not implemented'
+    return handler
+
+def cjump(op):
+    def handler(self, label):
+        val = self.pop()
+        assert type(val) is Reg
+        self.asm(f'test {val}, {val}')
+        self.asm(f'{op} {label}')
+    return handler
+
 @dataclass
 class Compiler:
     program: Program
@@ -104,7 +147,7 @@ class Compiler:
         for i in range(fn.start, fn.end):
             instruction = self.program.source[i]
             if type(instruction) is Label:
-                self.line(name + ':')
+                self.line(instruction.name + ':')
             else:
                 assert type(instruction) is Instruction
                 n = str(instruction.op)
@@ -177,14 +220,22 @@ class Compiler:
         loc = self.allocate()
         self.asm(f'mov {loc}, {val}')
 
-    def mul(self):
-        r = self.pop()
-        l = self.pop()
-        if type(l) is Reg:
-            self.asm(f'imul {l}, {r}')
-            self.push(l)
-        else:
-            assert False, 'Not implemented'
+    add = binop('add')
+    sub = binop('sub')
+    mul = binop('imul')
+
+    lt = comparison('setl')
+    le = comparison('setle')
+    gt = comparison('setg')
+    ge = comparison('setge')
+    eq = comparison('sete')
+    ne = comparison('setne')
+
+    def jmp(self, label):
+        self.asm(f'jmp {label}')
+
+    jz  = cjump('jz')
+    jnz = cjump('jnz')
 
     def allocate(self):
         if self.regs:
