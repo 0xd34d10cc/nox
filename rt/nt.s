@@ -189,6 +189,53 @@ sys_read_fail:
 
 ; void sys_write(int num)
 sys_write:
+    ; s = rsp
+    ; len = rcx
+    ; is_negative = r10
+    sub     rsp, 32 ; space for str
+    xor     r10, r10
+    mov     rax, rcx
+    cmp     rax, 0
+    je      sys_write_zero_case
+    jg      sys_write_start
+    mov     r10, 1
+    neg     rax
+sys_write_start:
+    mov     byte [rsp + 31], 10 ; '\n'
+    mov     rcx, 30
+
+sys_write_body:
+    cdq
+    mov     r8, 10
+    idiv    r8
+    add     rdx, 48 ; '\0'
+    mov     byte [rsp + rcx], dl
+    dec     rcx
+    cmp     rax, 0
+    jnz     sys_write_body
+    test    r10, r10
+    jz      sys_write_write
+    mov     byte [rsp + rcx], 45  ; '-'
+    dec     rcx
+sys_write_write:
+    inc     rcx
+    lea     rax, [rsp + rcx]
+    neg     rcx
+    add     rcx, 32
+    mov     rdx, rcx
+    mov     rcx, rax
+    call    write_str
+    jmp     sys_write_end
+
+sys_write_zero_case:
+    mov     byte [rsp], 48     ; '0'
+    mov     byte [rsp + 1], 10 ; '\n'
+    mov     rcx, rsp
+    mov     rdx, 2
+    call    write_str
+
+sys_write_end:
+    add     rsp, 32
     ret
 
 ; void sys_exit(int code)
