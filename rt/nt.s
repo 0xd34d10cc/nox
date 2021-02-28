@@ -206,7 +206,7 @@ sys_write_start:
     mov     rcx, 30
 
 sys_write_body:
-    cdq
+    cqo
     mov     r8, 10
     idiv    r8
     add     rdx, 48 ; '\0'
