@@ -36,7 +36,8 @@ def build(program):
     rt = assemble(rt_asm(os.name))
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
     args = '/subsystem:console', '/entry:main', '/align:64', '/filealign:64', '/ignore:4108'
-    subprocess.run([linker, *args, obj, rt, kernel32], check=True)
+    out = program.replace('.s', '.exe').replace('.asm', '.exe')
+    subprocess.run([linker, *args, obj, rt, kernel32, f'/out:{out}'], check=True)
     os.remove(rt)
     os.remove(obj)
 

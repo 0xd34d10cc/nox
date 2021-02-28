@@ -48,7 +48,8 @@ class Reg(Enum):
 word_size = 8
 
 special_regs = [
-    Reg.RAX, # return value
+    Reg.RAX, # return value, also used in idiv
+    Reg.RDX, # used in idiv
     Reg.RBP, # base pointer
     Reg.RSP  # stack pointer
 ]
@@ -100,6 +101,17 @@ def binop(op):
             self.push(l)
         else:
             assert False, 'Not implemented'
+    return handler
+
+def divmod_op(result):
+    def handler(self):
+        r = self.pop()
+        l = self.pop()
+        self.asm(f'mov {Reg.RAX}, {l}')
+        self.asm(f'cqo')
+        self.asm(f'idiv {r}')
+        self.asm(f'mov {l}, {result}')
+        self.push(l)
     return handler
 
 def comparison(op):
@@ -238,6 +250,8 @@ class Compiler:
     add = binop('add')
     sub = binop('sub')
     mul = binop('imul')
+    div = divmod_op(result=Reg.RAX)
+    mod = divmod_op(result=Reg.RDX)
 
     and_ = logical_binop('and')
     or_  = logical_binop('or')
