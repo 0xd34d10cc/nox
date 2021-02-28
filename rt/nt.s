@@ -46,6 +46,7 @@ sys_setup:
     mov     [rel STDOUT], rax
     add     rsp, 32                                  ; Remove the 32 bytes
     ret
+; end sys_setup()
 
 ; panic(char* s, int lne)
 panic:
@@ -186,6 +187,7 @@ sys_read_fail:
     mov     rcx, PARSE_INT_FAIL
     mov     rdx, PARSE_INT_FAIL_LEN
     call    panic
+; end sys_read()
 
 ; void sys_write(int num)
 sys_write:
@@ -196,8 +198,7 @@ sys_write:
     xor     r10, r10
     mov     rax, rcx
     cmp     rax, 0
-    je      sys_write_zero_case
-    jg      sys_write_start
+    jge      sys_write_start
     mov     r10, 1
     neg     rax
 sys_write_start:
@@ -227,16 +228,10 @@ sys_write_write:
     call    write_str
     jmp     sys_write_end
 
-sys_write_zero_case:
-    mov     byte [rsp], 48     ; '0'
-    mov     byte [rsp + 1], 10 ; '\n'
-    mov     rcx, rsp
-    mov     rdx, 2
-    call    write_str
-
 sys_write_end:
     add     rsp, 32
     ret
+; end sys_write()
 
 ; void sys_exit(int code)
 sys_exit:

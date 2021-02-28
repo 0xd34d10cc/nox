@@ -77,7 +77,7 @@ syscalls = {
     2: Fn('sys_exit',  args=['code'], locals=set(), returns_value=False, start=None, end=None)
 }
 
-base_listing = 'global main\n' + \
+base_listing = 'global main\n\n' + \
                 'extern sys_setup\n' + \
     '\n'.join(f'extern {syscall.name}' for syscall in syscalls.values()) + '\n\n'
 
