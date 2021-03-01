@@ -146,7 +146,7 @@ def logical_binop(op):
             self.asm(f'test {reg}, {reg}')
             self.asm(f'setne {reg.r8()}')
         self.asm(f'{op} {l}, {r}')
-        self.asm(f'and {l}, 0xff')
+        self.asm(f'and {l}, 0x1')
         self.push(l)
     return handler
 
@@ -188,10 +188,11 @@ class Compiler:
                 handler(*instruction.args)
 
     def compile_call(self, fn):
+        arg_regs_in_use = len(self.functions[self.current].args)
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
 
-        regs_to_save = [r for r in self.stack[n_args:] if type(r) is Reg] + args_regs[:n_args]
+        regs_to_save = [r for r in self.stack[n_args:] if type(r) is Reg] + args_regs[:arg_regs_in_use]
         for reg in regs_to_save:
             self.asm(f'push {reg}')
 
@@ -301,7 +302,10 @@ class Compiler:
         if self.regs:
             operand = self.regs.pop()
         else:
-            offset = self.stack[-1].offset
+            if type(self.stack[-1]) is StackLocation:
+                offset = self.stack[-1].offset
+            else:
+                offset = -1 - len(self.functions[self.current].locals)
             operand = StackLocation(offset - 1)
 
         self.push(operand)
@@ -342,7 +346,7 @@ class Compiler:
 
         i = try_find(fn.locals, var)
         if i is not None:
-            return StackLocation(-1 - -i)
+            return StackLocation(-1 - i)
 
         assert False, 'Not implemented'
 
