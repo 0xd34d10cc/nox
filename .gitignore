@@ -134,3 +134,7 @@ dmypy.json
 # syntax tree visualization
 *.png
 
+# tests intermediate files
+tests/*.noxbc
+tests/*.s
+tests/*.exe
