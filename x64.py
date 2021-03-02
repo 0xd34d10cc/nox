@@ -47,11 +47,14 @@ class Reg(Enum):
 
 word_size = 8
 
+tmp_reg = Reg.R10
+
 special_regs = [
     Reg.RAX, # return value, also used in idiv
     Reg.RDX, # used in idiv
     Reg.RBP, # base pointer
-    Reg.RSP  # stack pointer
+    Reg.RSP, # stack pointer
+    tmp_reg
 ]
 
 if os.name == 'nt':
@@ -59,6 +62,7 @@ if os.name == 'nt':
     # see https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention
     args_regs = [Reg.RCX, Reg.RDX, Reg.R8, Reg.R9]
     volatile_regs = [Reg.RAX] + args_regs + [Reg.R10, Reg.R11]
+    # stack_regs = set()
     stack_regs = set(Reg) - set(args_regs) - set(special_regs) - set(volatile_regs)
 else:
     assert False, 'Compiler does not support target {os.name}'
@@ -70,7 +74,7 @@ class StackLocation:
     def __str__(self):
         sign = '+' if self.offset >= 0 else '-'
         offset = abs(self.offset) * word_size
-        return f'[{Reg.RBP}{sign}{offset}]'
+        return f'qword [{Reg.RBP}{sign}{offset}]'
 
 @dataclass
 class Fn:
@@ -96,11 +100,13 @@ def binop(op):
     def handler(self):
         r = self.pop()
         l = self.pop()
-        if type(l) is Reg:
-            self.asm(f'{op} {l}, {r}')
-            self.push(l)
-        else:
-            assert False, 'Not implemented'
+        if type(l) is not Reg:
+            self.asm(f'mov {tmp_reg}, {l}')
+        self.asm(f'{op} {l if type(l) is Reg else tmp_reg}, {r}')
+        if type(l) is not Reg:
+            self.asm(f'mov {l}, {tmp_reg}')
+        self.push(l)
+
     return handler
 
 def divmod_op(result):
@@ -118,20 +124,25 @@ def comparison(op):
     def handler(self):
         r = self.pop()
         l = self.pop()
+        dst = l
+        if type(l) is not Reg:
+            self.asm(f'mov {tmp_reg}, {l}')
+            dst = tmp_reg
 
-        if type(l) is Reg:
-            self.asm(f'cmp {l}, {r}')
-            self.asm(f'{op} {l.r8()}')
-            self.asm(f'and {l}, 0x1')
-            self.push(l)
-        else:
-            assert False, 'Not implemented'
+        self.asm(f'cmp {dst}, {r}')
+        self.asm(f'{op} {dst.r8()}')
+        self.asm(f'and {dst}, 0x1')
+        if type(l) is not Reg:
+            self.asm(f'mov {l}, {tmp_reg}')
+        self.push(l)
     return handler
 
 def cjump(op):
     def handler(self, label):
         val = self.pop()
-        assert type(val) is Reg
+        if type(val) is not Reg:
+            self.asm(f'mov {tmp_reg}, {val}')
+            val = tmp_reg
         self.asm(f'test {val}, {val}')
         self.asm(f'{op} {label}')
     return handler
@@ -140,13 +151,26 @@ def logical_binop(op):
     def handler(self):
         r = self.pop()
         l = self.pop()
-        assert type(r) is Reg
-        assert type(l) is Reg
-        for reg in r, l:
+        for val in r, l:
+            if type(val) is not Reg:
+                self.asm(f'mov {tmp_reg}, {val}')
+                reg = tmp_reg
+            else:
+                reg = val
             self.asm(f'test {reg}, {reg}')
             self.asm(f'setne {reg.r8()}')
-        self.asm(f'{op} {l}, {r}')
-        self.asm(f'and {l}, 0x1')
+            if type(val) is not Reg:
+                self.asm(f'mov {val}, {tmp_reg}')
+
+        dst = l
+        if type(l) is not Reg:
+            dst = tmp_reg
+
+        self.asm(f'{op} {dst}, {r}')
+        self.asm(f'and {dst}, 0x1')
+        if type(l) is not Reg:
+            self.asm(f'mov {l}, {tmp_reg}')
+
         self.push(l)
     return handler
 
@@ -155,6 +179,7 @@ class Compiler:
     program: Program
     globals: set
     functions: Dict[str, Fn]
+    max_stack_depth: int = field(default=None)
     current: str = field(default=None)
 
     regs: list = field(default_factory=lambda: sorted(stack_regs, key=lambda x: x.value, reverse=True))
@@ -176,6 +201,7 @@ class Compiler:
 
     def compile_function(self, fn):
         self.current = fn.name
+        self.max_stack_depth = len(fn.locals)
         self.line(fn.name + ':')
         for i in range(fn.start, fn.end):
             instruction = self.program.source[i]
@@ -223,17 +249,16 @@ class Compiler:
         # prologue
         self.asm(f'push {Reg.RBP}')
         self.asm(f'mov {Reg.RBP}, {Reg.RSP}')
-        # reserve space for locals
-        n_locals = len(fn.locals)
-        self.asm(f'sub {Reg.RSP}, {n_locals*word_size}')
+        self.asm(f'sub {Reg.RSP}, {fn.name}_stackframe')
 
     def leave(self):
         fn = self.functions[self.current]
         n_locals = len(fn.locals)
         self.line(f'{fn.name}_epilogue:')
-        self.asm(f'add {Reg.RSP}, {n_locals*word_size}')
+        self.asm(f'add {Reg.RSP}, {fn.name}_stackframe')
         self.asm(f'pop {Reg.RBP}')
         self.asm(f'ret')
+        self.line(f'{fn.name}_stackframe EQU {self.max_stack_depth * word_size}')
 
     def load(self, var):
         loc = self.location(var)
@@ -241,7 +266,8 @@ class Compiler:
         if type(loc) is Reg or type(dst) is Reg:
             self.asm(f'mov {dst}, {loc}')
         else:
-            assert False, 'Not implemented'
+            self.asm(f'mov {tmp_reg}, {loc}')
+            self.asm(f'mov {dst}, {tmp_reg}')
 
     def store(self, var):
         top = self.pop()
@@ -249,21 +275,24 @@ class Compiler:
         if type(loc) is Reg or type(top) is Reg:
             self.asm(f'mov {loc}, {top}')
         else:
-            assert False, 'Not implemented'
+            self.asm(f'mov {tmp_reg}, {top}')
+            self.asm(f'mov {loc}, {tmp_reg}')
 
     def gload(self, var):
         dst = self.allocate()
         if type(dst) is Reg:
             self.asm(f'mov {dst}, [rel {var}]')
         else:
-            assert False, 'Not implemented'
+            self.asm(f'mov {tmp_reg}, [rel {var}]')
+            self.asm(f'mov {dst}, {tmp_reg}')
 
     def gstore(self, var):
         top = self.pop()
         if type(top) is Reg:
             self.asm(f'mov [rel {var}], {top}')
         else:
-            assert False, 'Not implemented'
+            self.asm(f'mov {tmp_reg}, {top}')
+            self.asm(f'mov [rel {var}], {tmp_reg}')
 
     def const(self, val):
         loc = self.allocate()
@@ -302,11 +331,13 @@ class Compiler:
         if self.regs:
             operand = self.regs.pop()
         else:
-            if type(self.stack[-1]) is StackLocation:
+            if self.stack and type(self.stack[-1]) is StackLocation:
                 offset = self.stack[-1].offset
             else:
                 offset = -1 - len(self.functions[self.current].locals)
-            operand = StackLocation(offset - 1)
+            offset -= 1
+            self.max_stack_depth = max(abs(offset), self.max_stack_depth)
+            operand = StackLocation(offset)
 
         self.push(operand)
         return operand
@@ -348,7 +379,7 @@ class Compiler:
         if i is not None:
             return StackLocation(-1 - i)
 
-        assert False, 'Not implemented'
+        assert False, f'Unknown variable: {var}'
 
 
 def functions(program):

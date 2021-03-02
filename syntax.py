@@ -4,7 +4,7 @@ from lark import Lark
 language_grammar = '''
     ?start: program
 
-    ?program: global* function* statement*
+    program: global* function* statement*
 
     global: "global" VAR ("," VAR)*
     function: "fn" VAR "(" args  ")" ["->" typename] block

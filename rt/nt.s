@@ -28,9 +28,6 @@ section .data
     SYS_READ_FAIL2 db "read() call failed due to invalid int", 0xa
     SYS_READ_FAIL2_LEN EQU $-SYS_READ_FAIL2
 
-    EXAMPLE db "  9 "
-    EXAMPLE_LEN EQU $-EXAMPLE ; Address of this line ($) - address of SPACES
-
 ; Uninitialized data segment
 section .bss
     alignb 8

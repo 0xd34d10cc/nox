@@ -90,7 +90,8 @@ for test_case in cases:
         print(f'FAIL (exception)')
         traceback.print_exc()
 
-print(f'Finished {len(cases)}: {successes} passed, {len(cases) - successes} failed')
-
-
-
+if successes == len(cases):
+    report = 'all passed'
+else:
+    report = f'{successes} passed, {len(cases) - successes} failed'
+print(f'Finished {len(cases)} tests:', report)
