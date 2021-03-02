@@ -10,6 +10,8 @@ global sys_write
 global sys_exit
 
 extern  GetStdHandle
+extern  GetLastError
+extern  ReadFile
 extern  WriteFile
 extern  ExitProcess
 
@@ -20,17 +22,22 @@ GET_STDOUT EQU -11
 
 ; Initialized data segment
 section .data
-    PARSE_INT_FAIL db "Failed to parse integer", 0xa
-    PARSE_INT_FAIL_LEN EQU $-PARSE_INT_FAIL
+    SYS_READ_FAIL1 db "read() call failed due to io error", 0xa
+    SYS_READ_FAIL1_LEN EQU $-SYS_READ_FAIL1
 
-    EXAMPLE db "  42 "
+    SYS_READ_FAIL2 db "read() call failed due to invalid int", 0xa
+    SYS_READ_FAIL2_LEN EQU $-SYS_READ_FAIL2
+
+    EXAMPLE db "  9 "
     EXAMPLE_LEN EQU $-EXAMPLE ; Address of this line ($) - address of SPACES
 
 ; Uninitialized data segment
 section .bss
     alignb 8
-    STDOUT  resq 1
-    STDIN   resq 1
+    STDOUT  resq 1    ; stdout handle
+    STDIN   resq 1    ; stdin handle
+    NREAD   resq 1    ; number of bytes in buffer
+    BUFFER  resb 1024 ; input buffer
 
 ; Code segment
 section .text
@@ -40,10 +47,11 @@ sys_setup:
     sub     rsp, 32                                  ; 32 bytes of shadow space
     mov     rcx, GET_STDIN
     call    GetStdHandle
-    mov     [rel STDIN], rax
+    mov     qword [rel STDIN], rax
+    mov     qword [rel NREAD], 0
     mov     rcx, GET_STDOUT
     call    GetStdHandle
-    mov     [rel STDOUT], rax
+    mov     qword [rel STDOUT], rax
     add     rsp, 32                                  ; Remove the 32 bytes
     ret
 ; end sys_setup()
@@ -55,9 +63,57 @@ panic:
     call    sys_exit
 ; end panic()
 
+; void consume(int n)
+; basically memmove(BUFFER, BUFFER+n, NREAD-n)
+consume:
+    mov     rax, BUFFER
+    add     rax, rcx
+    mov     rdx, qword [rel NREAD]
+    sub     rdx, rcx
+    mov     qword [rel NREAD], rdx
+    jmp     consume_cond
+consume_body:
+    mov     r10b, [rax]
+    sub     rax, rcx
+    mov     [rax], r10b
+    add     rax, rcx
+    inc     rax
+    dec     rdx
+consume_cond:
+    test    rdx, rdx
+    jnz     consume_body
+    ret
+
+; bool read_str(void)
+read_str:
+    sub     rsp, 16            ; read + overlapped
+    mov     rcx, [rel STDIN]   ; in
+    mov     rdx, BUFFER
+    add     rdx, qword [rel NREAD] ; buffer
+    mov     r8, 1024
+    sub     r8, qword [rel NREAD]  ; n bytes to read
+    mov     qword [rsp + 8], 0
+    lea     r9, [rsp + 8]      ; read
+    mov     qword [rsp], 0     ; overlapped
+    sub     rsp, 32            ; shadow space
+    call    ReadFile
+    add     rsp, 32
+    mov     rcx, qword [rsp + 8]
+    add     qword [rel NREAD], rcx
+    add     rsp, 16
+    test    rax, rax
+    jnz     read_str_finish
+    call    GetLastError
+    cmp     rax, 0x6D ; ERROR_BROKEN_PIPE
+    jne     read_str_finish
+    mov     rax, 1
+read_str_finish:
+    ret
+; end read_str()
+
 ; void write_str(char* s, int len)
 write_str:
-    sub     rsp, 16 ; written + 5th parameter
+    sub     rsp, 16 ; written + overlapped
 
     mov     r8, rdx            ; len
     mov     rdx, rcx           ; msg
@@ -94,18 +150,19 @@ skip_spaces_out:
     ret
 ; end skip_spaces()
 
-; int parse_int(char* s, int len, bool* ok)
+; int parse_int(char* s, int len, int* read)
 parse_int:
     ; regs:
     ; s = rcx
     ; len = rdx
-    ; ok = r8
+    ; read = r8
     ; is_negative = r10
     ; c = r11
 
     ; nspaces = skip_spaces(s, len)
     ; s += nspaces
     ; len -= nspaces
+    mov     qword [r8], rdx
     call    skip_spaces
     add     rcx, rax
     sub     rdx, rax
@@ -142,17 +199,9 @@ parse_int_body:
     test    rdx, rdx
     jz      parse_int_success
     cmp     byte [rcx], 48 ; '0'
-    jb      parse_int_skip_rest
+    jb      parse_int_success
     cmp     byte [rcx], 57 ; '9'
     jbe     parse_int_body
-
-; if skip_spaces(s, len) != len { fail() }
-parse_int_skip_rest:
-    push    rax
-    call    skip_spaces
-    cmp     rax, rdx
-    pop     rax
-    jne     parse_int_fail
 
 ; if (is_negative) { res = -res; }
 parse_int_success:
@@ -161,31 +210,43 @@ parse_int_success:
     neg     rax
 ; *ok = true; return res;
 parse_int_success_finish:
-    mov     byte [r8], 1
+    sub     qword [r8], rdx
     ret
 
 ; *ok = false; return res;
 parse_int_fail:
     mov     rax, -1
-    mov     byte [r8], 0
+    mov     qword [r8], 0
     ret
 ; end parse_int()
 
 ; int sys_read(void)
 sys_read:
+    call    read_str
+    test    rax, rax
+    jz      sys_read_fail1
     sub     rsp, 8
-    mov     rcx, EXAMPLE
-    mov     rdx, EXAMPLE_LEN
+    mov     rcx, BUFFER
+    mov     rdx, qword [rel NREAD]
     mov     r8, rsp
     call    parse_int
-    cmp     byte [rsp], 0
-    je      sys_read_fail
+    cmp     qword [rsp], 0
+    je      sys_read_fail2
+    mov     rcx, [rsp]
+    mov     [rsp], rax
+    call    consume
+    mov     rax, [rsp]
     add     rsp, 8
     ret
 
-sys_read_fail:
-    mov     rcx, PARSE_INT_FAIL
-    mov     rdx, PARSE_INT_FAIL_LEN
+sys_read_fail1:
+    mov     rcx, SYS_READ_FAIL1
+    mov     rdx, SYS_READ_FAIL1_LEN
+    call    panic
+
+sys_read_fail2:
+    mov     rcx, SYS_READ_FAIL2
+    mov     rdx, SYS_READ_FAIL2_LEN
     call    panic
 ; end sys_read()
 

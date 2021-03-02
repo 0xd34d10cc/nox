@@ -192,7 +192,7 @@ class Compiler:
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
 
-        regs_to_save = [r for r in self.stack[n_args:] if type(r) is Reg] + args_regs[:arg_regs_in_use]
+        regs_to_save = [r for r in self.stack[:-n_args] if type(r) is Reg] + args_regs[:arg_regs_in_use]
         for reg in regs_to_save:
             self.asm(f'push {reg}')
 
