@@ -40,6 +40,10 @@ def run_case(test_case):
     program = bc.compile(program)
     assert program == bc.parse(str(program))
 
+    bytecode_file = test_case.replace('.nox', '.noxbc')
+    with open(bytecode_file, 'wt') as f:
+        f.write(str(program))
+
     out = io.StringIO()
     state = bc.State()
     with contextlib.redirect_stdout(out), use_as_stdin(inp):

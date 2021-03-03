@@ -47,23 +47,23 @@ class Reg(Enum):
 
 word_size = 8
 
-tmp_reg = Reg.R10
+tmp_reg = Reg.RAX
 
-special_regs = [
+special_regs = {
     Reg.RAX, # return value, also used in idiv
     Reg.RDX, # used in idiv
     Reg.RBP, # base pointer
-    Reg.RSP, # stack pointer
-    tmp_reg
-]
+    Reg.RSP  # stack pointer
+    # tmp_reg
+}
 
 if os.name == 'nt':
     # win64 calling convention
     # see https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention
     args_regs = [Reg.RCX, Reg.RDX, Reg.R8, Reg.R9]
     volatile_regs = [Reg.RAX] + args_regs + [Reg.R10, Reg.R11]
-    # stack_regs = set()
-    stack_regs = set(Reg) - set(args_regs) - set(special_regs) - set(volatile_regs)
+    # TODO: use a set of regs as storage for local variables?
+    stack_regs = set(Reg) - set(args_regs) - set(special_regs)
 else:
     assert False, 'Compiler does not support target {os.name}'
 
