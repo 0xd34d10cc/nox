@@ -8,9 +8,9 @@ import bc
 import x64
 
 
-def rt_asm(target_os):
+def runtime():
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(current_dir, 'rt', f'{target_os}.s')
+    return os.path.join(current_dir, 'rt', f'{os.name}.c')
 
 def find_winsdk():
     base = r'C:\Program Files (x86)\Windows Kits\10\Lib'
@@ -23,17 +23,23 @@ def find_winsdk():
 
 def build(program):
     assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
+    compiler = shutil.which('cl')
     assembler = shutil.which('nasm')
-    linker = shutil.which('lld-link') or shutil.which('link')
+    linker = shutil.which('link')
+    assert compiler, 'cl not in PATH'
     assert assembler, 'nasm is not in PATH'
     assert linker, 'linker is not in PATH'
+
+    def compile(program):
+        subprocess.run([compiler, '/nologo', '/O1', '/c', program], stdout=subprocess.DEVNULL, check=True)
+        return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
 
     def assemble(program):
         subprocess.run([assembler, '-f', 'win64', program], check=True)
         return program.replace('.s', '.obj').replace('.asm', '.obj')
 
     obj = assemble(program)
-    rt = assemble(rt_asm(os.name))
+    rt = compile(runtime())
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
     args = '/nologo', '/subsystem:console', '/entry:main'
     out = program.replace('.s', '.exe').replace('.asm', '.exe')

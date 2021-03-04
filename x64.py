@@ -53,13 +53,14 @@ special_regs = {
     Reg.RAX, # return value, also used in idiv
     Reg.RDX, # used in idiv
     Reg.RBP, # base pointer
-    Reg.RSP  # stack pointer
-    # tmp_reg
+    Reg.RSP, # stack pointer
+    tmp_reg
 }
 
 if os.name == 'nt':
     # win64 calling convention
     # see https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention
+    shadow_space = 32
     args_regs = [Reg.RCX, Reg.RDX, Reg.R8, Reg.R9]
     volatile_regs = [Reg.RAX] + args_regs + [Reg.R10, Reg.R11]
     # TODO: use a set of regs as storage for local variables?
@@ -213,7 +214,7 @@ class Compiler:
                 handler = getattr(self, n, None) or getattr(self, n + '_')
                 handler(*instruction.args)
 
-    def compile_call(self, fn):
+    def compile_call(self, fn, shadow_space=0):
         arg_regs_in_use = len(self.functions[self.current].args)
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
@@ -226,7 +227,13 @@ class Compiler:
         for dst, src in zip(args_regs, args):
             self.asm(f'mov {dst}, {src}')
 
+        if shadow_space:
+            self.asm(f'sub rsp, {shadow_space}')
+
         self.asm(f'call {fn.name}')
+        if shadow_space:
+            self.asm(f'add rsp, {shadow_space}')
+
         if fn.returns_value:
             dst = self.allocate()
             self.asm(f'mov {dst}, {Reg.RAX}')
@@ -238,7 +245,7 @@ class Compiler:
         self.compile_call(self.functions[label.name])
 
     def syscall(self, n):
-        self.compile_call(syscalls[n])
+        self.compile_call(syscalls[n], shadow_space=shadow_space)
 
     def enter(self, fn_tag, *args):
         fn = self.functions[self.current]
