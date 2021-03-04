@@ -2,11 +2,8 @@ import sys
 import os
 import glob
 import io
-import re
 import contextlib
-import difflib
 import subprocess
-import traceback
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(current_dir, '..'))
@@ -22,10 +19,6 @@ def use_as_stdin(s):
     sys.stdin = io.StringIO(s)
     yield
     sys.stdin = original
-
-def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
-    return [int(text) if text.isdigit() else text.lower()
-            for text in _nsre.split(s)]
 
 def read_files(base):
     data = tuple()
@@ -50,15 +43,7 @@ def run_case(test_case):
         assert bc.execute(state, program) == 0
 
     assert len(state.stack) == 0, str(stack)
-    actual_output = out.getvalue()
-    if actual_output != expected_output:
-        print('FAIL (bc)')
-        diffs = difflib.ndiff(
-            expected_output.splitlines(keepends=True),
-            actual_output.splitlines(keepends=True)
-        )
-        print(''.join(diffs))
-        return False
+    assert expected_output == out.getvalue()
 
     asm = x64.compile(program)
     asm_file = test_case.replace('.nox', '.s')
@@ -68,34 +53,9 @@ def run_case(test_case):
     driver.build(asm_file)
     binary = test_case.replace('.nox', '.exe')
     status = subprocess.run([binary], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
-    actual_output = status.stdout.decode()
-    if actual_output != expected_output:
-        print('FAIL (x64)')
-        diffs = difflib.ndiff(
-            expected_output.splitlines(keepends=True),
-            actual_output.splitlines(keepends=True)
-        )
-        print(''.join(diffs))
-        return False
+    assert expected_output == status.stdout.decode()
 
-    print('OK')
-    return True
-
-files = glob.glob(os.path.join(current_dir, '*.nox'))
-cases = sorted(files, key=natural_sort_key)
-successes = 0
+cases = glob.glob(os.path.join(current_dir, 'tests', '*.nox'))
 for test_case in cases:
-    name = os.path.basename(test_case)
-    print(f'Test {name:<10}', end='', flush=True)
-    try:
-        if run_case(test_case):
-            successes += 1
-    except Exception as e:
-        print(f'FAIL (exception)')
-        traceback.print_exc()
-
-if successes == len(cases):
-    report = 'all passed'
-else:
-    report = f'{successes} passed, {len(cases) - successes} failed'
-print(f'Finished {len(cases)} tests:', report)
+    name, ext = os.path.basename(test_case).split('.')
+    globals()[f'test_{name}'] = lambda case=test_case: run_case(case)
