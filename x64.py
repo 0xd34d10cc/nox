@@ -428,11 +428,3 @@ def list_globals(program):
 def compile(program):
     compiler = Compiler(program, list_globals(program), functions(program))
     return compiler.compile()
-
-
-if __name__ == '__main__':
-    print(compile(
-        bc.parse(
-            open(sys.argv[1], 'rt', encoding='utf-8').read()
-        )
-    ))

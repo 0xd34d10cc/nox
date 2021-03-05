@@ -4,11 +4,9 @@ import glob
 import io
 import contextlib
 import subprocess
+import re
 
 import pytest
-
-current_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(current_dir, '..'))
 
 import syntax
 import bc
@@ -29,7 +27,15 @@ def read_files(base):
             data += (f.read(),)
     return data
 
-@pytest.mark.parametrize('file', glob.glob(os.path.join(current_dir, 'tests', '*.nox')))
+current_dir = os.path.dirname(os.path.realpath(__file__))
+files = glob.glob(os.path.join(current_dir, 'tests', '*.nox'))
+
+def natural_sort_key(key, _re=re.compile(r'([0-9]+)')):
+    return [int(item) if item.isdigit() else item for item in _re.split(key)]
+
+files = sorted(files, key=natural_sort_key)
+
+@pytest.mark.parametrize('file', files)
 def test_program(file):
     program, inp, expected_output = read_files(file)
     program = syntax.parse(program)
