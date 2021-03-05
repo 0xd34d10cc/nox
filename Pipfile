@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+lark = "0.11"
+
+[dev-packages]
+pytest = "6.2"
+pydot = "1.4"
+
+[requires]
+python_version = "3.8"
