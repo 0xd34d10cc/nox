@@ -1,21 +1,13 @@
-#define NULL (void*)0
-typedef void* Handle;
-typedef unsigned char Bool;
-typedef unsigned char Byte;
-typedef long long Int;
+#include "types.h"
+#include "syscalls.h"
 
 #define WINAPI __stdcall
 static const int GET_STDIN  = -10;
 static const int GET_STDOUT = -11;
 extern Handle WINAPI GetStdHandle(int type);
-extern Bool WINAPI ReadFile(Handle file, Byte* buffer, Int n, Int* read, void* overlapped);
-extern Bool WINAPI WriteFile(Handle file, const Byte* buffer, Int n, Int* written, void* overlapped);
-extern void WINAPI ExitProcess(Int code);
-
-extern void sys_setup(void);
-extern Int  sys_read(void);
-extern void sys_write(Int n);
-extern void sys_exit(Int code);
+extern Bool   WINAPI ReadFile(Handle file, Byte* buffer, Int n, Int* read, void* overlapped);
+extern Bool   WINAPI WriteFile(Handle file, const Byte* buffer, Int n, Int* written, void* overlapped);
+extern void   WINAPI ExitProcess(Int code);
 
 static Handle STDIN;
 typedef struct {
