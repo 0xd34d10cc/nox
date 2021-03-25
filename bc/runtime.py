@@ -43,36 +43,38 @@ SYSCALLS = [
     (sys_exit, 1)
 ]
 
-@dataclass
 class State:
-    ip: int = field(default=0)
-    stack: List[int] = field(default_factory=list)
-    callstack: List[int] = field(default_factory=list)
-    globals: Dict[str, int] = field(default_factory=dict)
-    locals: List[Dict[str, int]] = field(default_factory=lambda: [{}])
+    ip: int
+    stack: List[int]
+    callstack: List[int]
+    globals: List[int]
+    locals: List[List[int]]
 
-    def load(self, var):
-        assert type(var) is str
-        val = self.locals[-1][var]
+    def __init__(self, program):
+        self.ip = program.entry
+        self.stack = []
+        self.callstack = []
+        self.globals = [0] * len(program.globals)
+        self.locals = []
+
+    def load(self, var_id):
+        val = self.locals[-1][var_id]
         self.stack.append(val)
         self.ip += 1
 
-    def store(self, var):
-        assert type(var) is str
+    def store(self, var_id):
         val = self.stack.pop()
-        self.locals[-1][var] = val
+        self.locals[-1][var_id] = val
         self.ip += 1
 
-    def gload(self, var):
-        assert type(var) is str
-        val = self.globals[var]
+    def gload(self, var_id: int):
+        val = self.globals[var_id]
         self.stack.append(val)
         self.ip += 1
 
-    def gstore(self, var):
-        assert type(var) is str
+    def gstore(self, var_id):
         val = self.stack.pop()
-        self.globals[var] = val
+        self.globals[var_id] = val
         self.ip += 1
 
     def const(self, val):
@@ -118,11 +120,12 @@ class State:
         self.locals.pop()
         self.ip = self.callstack.pop()
 
-    def enter(self, scope_type, *args):
-        self.locals.append({
-            arg: self.stack.pop()
-            for arg in args
-        })
+    def enter(self, scope_type, n_args, n_locals):
+        args = [
+            self.stack.pop()
+            for _ in range(n_args)
+        ]
+        self.locals.append(args + [0] * n_locals)
         self.ip += 1
 
     def leave(self):

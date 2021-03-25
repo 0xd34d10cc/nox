@@ -6,7 +6,7 @@ from enum import Enum, auto
 from typing import Dict
 
 import bc
-from bc import Op, Instruction, Label, Program
+from bc import Op, Instruction, Label, Program, Fn
 
 
 def try_find(xs, val):
@@ -76,15 +76,6 @@ class StackLocation:
         sign = '+' if self.offset >= 0 else '-'
         offset = abs(self.offset) * word_size
         return f'qword [{Reg.RBP}{sign}{offset}]'
-
-@dataclass
-class Fn:
-    name: str
-    args: list
-    locals: list
-    returns_value: bool
-    start: int
-    end: int
 
 syscalls = {
     0: Fn('sys_read',  args=[],       locals=set(), returns_value=True,  start=None, end=None),
@@ -178,8 +169,6 @@ def logical_binop(op):
 @dataclass
 class Compiler:
     program: Program
-    globals: set
-    functions: Dict[str, Fn]
     max_stack_depth: int = field(default=None)
     current: str = field(default=None)
 
@@ -188,13 +177,13 @@ class Compiler:
     listing: str = field(default=base_listing)
 
     def compile(self):
-        if len(self.globals):
+        if len(self.program.globals):
             self.line('section .data')
-            for var in self.globals:
+            for var in self.program.globals:
                 self.asm(f'{var:<8} dq 0')
             self.line('')
 
-        fns = sorted(self.functions.values(), key=lambda f: f.start)
+        fns = sorted(self.program.functions.values(), key=lambda f: f.start)
         self.line('section .text')
         for f in fns:
             self.compile_function(f)
@@ -215,7 +204,7 @@ class Compiler:
                 handler(*instruction.args)
 
     def compile_call(self, fn, shadow_space=0):
-        arg_regs_in_use = len(self.functions[self.current].args)
+        arg_regs_in_use = len(self.program.functions[self.current].args)
         n_args = len(fn.args)
         assert n_args <= len(args_regs), 'Too many args (pass through stack is not implemented yet)'
 
@@ -242,13 +231,13 @@ class Compiler:
             self.asm(f'pop {reg}')
 
     def call(self, label):
-        self.compile_call(self.functions[label.name])
+        self.compile_call(self.program.functions[label.name])
 
     def syscall(self, n):
         self.compile_call(syscalls[n], shadow_space=shadow_space)
 
     def enter(self, fn_tag, *args):
-        fn = self.functions[self.current]
+        fn = self.program.functions[self.current]
         if fn.name == 'main':
             # setup the runtime at the start of program
             self.asm('call sys_setup')
@@ -259,7 +248,7 @@ class Compiler:
         self.asm(f'sub {Reg.RSP}, {fn.name}_stackframe')
 
     def leave(self):
-        fn = self.functions[self.current]
+        fn = self.program.functions[self.current]
         n_locals = len(fn.locals)
         self.line(f'{fn.name}_epilogue:')
         self.asm(f'add {Reg.RSP}, {fn.name}_stackframe')
@@ -328,7 +317,7 @@ class Compiler:
     jnz = cjump('jnz')
 
     def ret(self):
-        fn = self.functions[self.current]
+        fn = self.program.functions[self.current]
         if fn.returns_value:
             ret = self.pop()
             self.asm(f'mov {Reg.RAX}, {ret}')
@@ -341,7 +330,7 @@ class Compiler:
             if self.stack and type(self.stack[-1]) is StackLocation:
                 offset = self.stack[-1].offset
             else:
-                offset = -1 - len(self.functions[self.current].locals)
+                offset = -1 - len(self.program.functions[self.current].locals)
             offset -= 1
             self.max_stack_depth = max(abs(offset), self.max_stack_depth)
             operand = StackLocation(offset)
@@ -372,7 +361,7 @@ class Compiler:
         self.line(f'    {instruction:<7} {" ".join(ops)}')
 
     def location(self, var):
-        fn = self.functions[self.current]
+        fn = self.program.functions[self.current]
         i = try_find(fn.args, var)
         if i is not None:
             if i < len(args_regs):
@@ -389,42 +378,6 @@ class Compiler:
         assert False, f'Unknown variable: {var}'
 
 
-def functions(program):
-    funcs = {}
-    name = None
-    args = None
-    locals = None
-    returns_value = None
-    start = None
-    for i, instruction in enumerate(program.source):
-        if type(instruction) is Label:
-            continue
-        assert type(instruction) is Instruction
-
-        if instruction.op is Op.ENTER:
-            name = program.source[i - 1].name
-            args = instruction.args[1:]
-            locals = {}
-            returns_value = instruction.args[0] == 'fn'
-            start = i
-        elif instruction.op is Op.STORE:
-            n = instruction.args[0]
-            if n not in locals:
-                locals[n] = i
-        elif instruction.op is Op.LEAVE:
-            locals = sorted(locals, key=lambda n: locals[n])
-            funcs[name] = Fn(name, args, locals, returns_value, start, end=i+1)
-    return funcs
-
-def list_globals(program):
-    globals = set()
-    for instruction in program.source:
-        if type(instruction) is Label:
-            continue
-        if instruction.op in (Op.GLOAD, Op.GSTORE):
-            globals.add(instruction.args[0])
-    return globals
-
 def compile(program):
-    compiler = Compiler(program, list_globals(program), functions(program))
+    compiler = Compiler(program)
     return compiler.compile()

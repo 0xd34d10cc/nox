@@ -47,7 +47,7 @@ def test_program(file):
         f.write(str(program))
 
     out = io.StringIO()
-    state = bc.State()
+    state = bc.State(program)
     with contextlib.redirect_stdout(out), use_as_stdin(inp):
         assert bc.execute(state, program) == 0
 
