@@ -50,7 +50,7 @@ static void puts(const char* s) {
 
 static void panic(const char* s) {
   puts(s);
-  ExitProcess(-1);
+  sys_exit(-1);
 }
 
 static Int parse_int(const Byte* buffer, Int len, Int* parsed) {
@@ -90,6 +90,42 @@ static Int parse_int(const Byte* buffer, Int len, Int* parsed) {
   return val;
 }
 
+extern void memcpy(Byte* dst, Byte* src, Int len) {
+  while (len--) {
+    *dst++ = *src++;
+  }
+}
+
+static Int to_chars(Byte* s, Int len, Int val) {
+  Byte buffer[32];
+  Bool negative = val < 0;
+  if (negative) {
+    val = -val;
+  }
+
+  Int i = sizeof(buffer) - 1;
+  do {
+    buffer[i] = '0' + (val % 10);
+    val /= 10;
+    i--;
+  } while (val != 0);
+
+  if (negative) {
+    buffer[i] = '-';
+    i--;
+  }
+
+  i++;
+
+  Int n = sizeof(buffer) - i;
+  if (n > len) {
+    return -1;
+  }
+
+  memcpy(s, buffer + i, n);
+  return n;
+}
+
 extern Int sys_read(void) {
   if (!fill_buffer(STDIN, &STDIN_BUFFER)) {
     panic("sys_read() failed: io error\n");
@@ -110,32 +146,21 @@ extern Int sys_read(void) {
 
 extern void sys_write(Int val) {
   Byte buffer[32];
-  Bool negative = val < 0;
-  if (negative) {
-    val = -val;
+  Int len = to_chars(buffer, sizeof(buffer), val);
+  if (len < 0) {
+    panic("sys_write() failed: int conversion\n");
   }
 
-  buffer[31] = '\n';
-  Int i = 30;
-  do {
-    buffer[i] = '0' + (val % 10);
-    val /= 10;
-    i--;
-  } while (val != 0);
+  buffer[len] = '\n';
+  ++len;
 
-  if (negative) {
-    buffer[i] = '-';
-    i--;
-  }
-
-  i++;
   Int written = 0;
-  Bool success = WriteFile(STDOUT, buffer + i, sizeof(buffer) - i, &written, NULL);
+  Bool success = WriteFile(STDOUT, buffer, len, &written, NULL);
   if (!success) {
     panic("sys_write() failed: io error\n");
   }
 
-  if (written != sizeof(buffer) - i) {
+  if (written != len) {
     panic("sys_write() failed: short write\n");
   }
 }

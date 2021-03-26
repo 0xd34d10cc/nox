@@ -41,6 +41,7 @@ class Op(Enum):
     def __str__(self):
         return self.name.lower()
 
+
 @dataclass
 class Label:
     __slots__ = ('name')
@@ -55,6 +56,7 @@ class Label:
 
     def __str__(self):
         return self.name
+
 
 @dataclass
 class Instruction:

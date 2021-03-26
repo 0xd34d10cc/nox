@@ -31,7 +31,8 @@ def build(program):
     assert linker, 'linker is not in PATH'
 
     def compile(program):
-        subprocess.run([compiler, '/nologo', '/O1', '/c', program], stdout=subprocess.DEVNULL, check=True)
+        args = '/nologo', '/GS-', '/O1', '/Oi-', '/c'
+        subprocess.run([compiler, *args, program], stdout=subprocess.DEVNULL, check=True)
         return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
 
     def assemble(program):
@@ -41,7 +42,7 @@ def build(program):
     obj = assemble(program)
     rt = compile(runtime())
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
-    args = '/nologo', '/subsystem:console', '/entry:main'
+    args = '/nologo', '/nodefaultlib', '/subsystem:console', '/entry:main'
     out = program.replace('.s', '.exe').replace('.asm', '.exe')
     subprocess.run([linker, *args, obj, rt, kernel32, f'/out:{out}'], check=True)
     os.remove(rt)
