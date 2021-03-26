@@ -1,42 +1,42 @@
 import copy
 
-from enum import Enum, auto
+from enum import Enum
 from dataclasses import dataclass
 from typing import List, Dict, Union
 
 
 class Op(Enum):
     # Memory ops
-    LOAD = auto()
-    STORE = auto()
-    GLOAD = auto()
-    GSTORE = auto()
+    LOAD    = 0x00
+    STORE   = 0x01
+    GLOAD   = 0x02
+    GSTORE  = 0x03
     # Arithmetic ops
-    CONST = auto()
-    ADD = auto()
-    SUB = auto()
-    MUL = auto()
-    DIV = auto()
-    MOD = auto()
+    CONST   = 0x04
+    ADD     = 0x05
+    SUB     = 0x06
+    MUL     = 0x07
+    DIV     = 0x08
+    MOD     = 0x09
     # Logic ops
-    AND = auto()
-    OR = auto()
-    LT = auto()
-    LE = auto()
-    GT = auto()
-    GE = auto()
-    EQ = auto()
-    NE = auto()
+    AND     = 0x0A
+    OR      = 0x0B
+    LT      = 0x0C
+    LE      = 0x0D
+    GT      = 0x0E
+    GE      = 0x0F
+    EQ      = 0x10
+    NE      = 0x11
     # Jumps
-    JMP = auto()
-    JZ = auto()
-    JNZ = auto()
-    CALL = auto()
-    SYSCALL = auto()
-    RET = auto()
+    JMP     = 0x12
+    JZ      = 0x13
+    JNZ     = 0x14
+    CALL    = 0x15
+    SYSCALL = 0x16
+    RET     = 0x17
     # Function boundaries
-    ENTER = auto()
-    LEAVE = auto()
+    ENTER   = 0x18
+    LEAVE   = 0x19
 
     def __str__(self):
         return self.name.lower()
@@ -73,6 +73,19 @@ class Instruction:
         if self.op is Op.ENTER:
             return f'{self.op} {self.args[0]}({", ".join(str(arg) for arg in self.args[1:])})'
         return f'{self.op} {", ".join(str(arg) for arg in self.args)}'
+
+    def bytecode(self):
+        opcode = self.op.value
+        if self.op is Op.ENTER:
+            _, n_args, n_locals = self.args
+            arg = n_locals << 32 | n_args
+        elif len(self.args) != 0:
+            assert len(self.args) == 1
+            arg = self.args[0]
+        else:
+            arg = 0
+        pad = b'\0' * 7
+        return int.to_bytes(opcode, 1, 'little') + pad  + int.to_bytes(arg, 8, 'little')
 
 
 @dataclass
@@ -181,6 +194,15 @@ class Program:
         instructions, labels = resolve_labels(instructions)
         entry = labels[entrypoint]
         return Program(source, instructions, globals, fns, entry)
+
+    def serialize(self):
+        magic = b'.noxbc--'
+        entry = int.to_bytes(self.entry, 4, 'little')
+        n_globals = int.to_bytes(len(self.globals), 4, 'little')
+        program = magic + n_globals + entry
+        for instruction in self.instructions:
+            program += instruction.bytecode()
+        return program
 
     def __str__(self):
         return '\n'.join(

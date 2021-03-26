@@ -35,8 +35,13 @@ def natural_sort_key(key, _re=re.compile(r'([0-9]+)')):
 
 files = sorted(files, key=natural_sort_key)
 
+vm = None
+rt = None
+
 @pytest.mark.parametrize('file', files)
 def test_program(file):
+    global vm, rt
+
     program, inp, expected_output = read_files(file)
     program = syntax.parse(program)
     program = bc.compile(program)
@@ -59,18 +64,20 @@ def test_program(file):
     with open(asm_file, 'wt') as f:
         f.write(asm)
 
-    driver.build(asm_file)
+    if rt is None:
+        rt = driver.compile(driver.runtime())
+
+    driver.build(asm_file, [rt], with_runtime=False)
     binary = file.replace('.nox', '.exe')
     status = subprocess.run([binary], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
     assert expected_output == status.stdout.decode()
 
-    # bytecode = file.replace('.nox', '.noxbc')
-    # with open(bytecode, 'wb') as f:
-    #     f.write(program.serialize())
+    bytecode = file.replace('.nox', '.noxbc')
+    with open(bytecode, 'wb') as f:
+        f.write(program.serialize())
 
-    # TODO: test vm
-    # TODO: do not rebuild vm for every test
-    # driver.build('vm.c')
-    # binary = 'vm.exe'
-    # status = subprocess.run([binary, bytecode], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
-    # assert expected_output = status.stdout.decode()
+    if vm is None:
+        driver.build('vm.c', [rt], with_runtime=False)
+        vm = 'vm.exe'
+    status = subprocess.run([vm, bytecode], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
+    assert expected_output == status.stdout.decode()

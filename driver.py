@@ -21,37 +21,43 @@ def find_winsdk():
     latest_sdk = max(os.listdir(base), key=version)
     return os.path.join(base, latest_sdk)
 
-def build(program):
-    assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
-    compiler = shutil.which('cl')
-    assembler = shutil.which('nasm')
-    linker = shutil.which('link')
+compiler = shutil.which('cl')
+assembler = shutil.which('nasm')
+linker = shutil.which('link')
+
+def compile(program):
     assert compiler, 'cl not in PATH'
+    args = '/nologo', '/GS-', '/O2', '/Oi-', '/c'
+    subprocess.run([compiler, *args, program], check=True)
+    return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
+
+def assemble(program):
     assert assembler, 'nasm is not in PATH'
+    subprocess.run([assembler, '-f', 'win64', program], check=True)
+    return program.replace('.s', '.obj').replace('.asm', '.obj')
+
+def build(program, objects=None, with_runtime=True):
+    assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
     assert linker, 'linker is not in PATH'
-
-    def compile(program):
-        args = '/nologo', '/GS-', '/O1', '/Oi-', '/c'
-        subprocess.run([compiler, *args, program], check=True)
-        return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
-
-    def assemble(program):
-        subprocess.run([assembler, '-f', 'win64', program], check=True)
-        return program.replace('.s', '.obj').replace('.asm', '.obj')
+    if objects is None:
+        objects = []
 
     if program.endswith('.s'):
         obj = assemble(program)
-        rt  = compile(runtime())
     elif program.endswith('.c'):
         obj = compile(program)
-        rt  = compile(runtime())
 
-    objects = obj, rt
+    objects.append(obj)
+    if with_runtime:
+        rt = compile(runtime())
+        objects.append(rt)
+
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
     args = '/nologo', '/nodefaultlib', '/subsystem:console', '/entry:main'
     out = program.replace('.s', '.exe').replace('.c', '.exe')
     subprocess.run([linker, *args, *objects, kernel32, f'/out:{out}'], check=True)
-    os.remove(rt)
+    if with_runtime:
+        os.remove(rt)
     os.remove(obj)
 
 def main(file):
@@ -65,9 +71,14 @@ def main(file):
     if file.endswith('.nox'):
         program = syntax.parse(program)
         program = bc.compile(program)
-    elif file.endswith('.noxbc'):
+    elif file.endswith('.noxtbc'):
         program = bc.parse(program)
-        program = x64.compile(program)
+        data = program.serialize()
+        with open(file.replace('.noxtbc', '.noxbc'), 'wb') as f:
+            f.write(data)
+        return
+        # TODO: implement --target option
+        # program = x64.compile(program)
     else:
         raise Exception(f'Unsupported file type: {file}')
 

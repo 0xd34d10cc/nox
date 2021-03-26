@@ -33,9 +33,7 @@ enum Op {
 
 typedef struct {
   Byte opcode;
-  Byte flags;
-  Byte n_args;
-  Byte n_locals;
+  Byte pad[7];
   Int  arg;
 } Instruction;
 
@@ -43,12 +41,22 @@ typedef struct {
 
 static_assert(sizeof(Instruction) == 16);
 
-static Int STACK[256];
-static Int CALLSTACK[256];
-static Int STACKFRAME[256];
-static Int MEMORY[4 * 1024 * 1024];
+typedef struct {
+  Int stack[256];
+  Int callstack[256];
+  Int stackframe[256];
+  Int memory[4 * 1024 * 1024];
+} State;
+
+static State STATE;
 
 static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int globals) {
+  // Move to locals for faster access
+  Int* STACK = STATE.stack;
+  Int* CALLSTACK = STATE.callstack;
+  Int* STACKFRAME = STATE.stackframe;
+  Int* MEMORY = STATE.memory;
+
   Int ip = entrypoint;
   Int stack = 0;
   Int callstack = 0;
@@ -59,13 +67,21 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
 
   while (ip < n) {
     Instruction* instruction = instructions + ip;
+    // puts("IP: ");
+    // sys_write(ip);
+    // puts("OP: ");
+    // sys_write(instruction->opcode);
+    // puts("MEM: ");
+    // sys_write(mem);
+    // puts("STACK: ");
+    // sys_write(stack);
     switch (instruction->opcode) {
       case LOAD:
         STACK[stack++] = MEMORY[mem - instruction->arg];
         ++ip;
         break;
       case STORE:
-        MEMORY[mem + instruction->arg] = STACK[stack--];
+        MEMORY[mem - instruction->arg] = STACK[--stack];
         ++ip;
         break;
       case GLOAD:
@@ -82,96 +98,87 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         break;
       case ADD:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l + r;
+        STACK[stack-1] += r;
         ++ip;
         break;
       case SUB:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l - r;
+        STACK[stack-1] -= r;
         ++ip;
         break;
       case MUL:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l * r;
+        STACK[stack-1] *= r;
         ++ip;
         break;
       case DIV:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l / r;
+        STACK[stack-1] /= r;
         ++ip;
         break;
       case MOD:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l % r;
+        STACK[stack-1] %= r;
         ++ip;
         break;
       case AND:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l && r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l && r;
         ++ip;
         break;
       case OR:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l || r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l || r;
         ++ip;
         break;
       case LT:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l < r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l < r;
         ++ip;
         break;
       case LE:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l <= r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l <= r;
         ++ip;
         break;
       case GT:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l > r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l > r;
         ++ip;
         break;
       case GE:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l >= r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l >= r;
         ++ip;
         break;
       case EQ:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l == r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l == r;
         ++ip;
         break;
       case NE:
         r = STACK[--stack];
-        l = STACK[stack];
-        STACK[stack] = l != r;
+        l = STACK[stack-1];
+        STACK[stack-1] = l != r;
         ++ip;
         break;
       case JMP:
         ip = instruction->arg;
         break;
       case JZ:
-        r = STACK[stack--];
-        if (!r) {
-          ip = r;
-        }
+        r = STACK[--stack];
+        ip = !r ? instruction->arg : (ip + 1);
         break;
       case JNZ:
-        r = STACK[stack--];
-        if (r) {
-          ip = r;
-        }
+        r = STACK[--stack];
+        ip = r ? instruction->arg : (ip + 1);
         break;
       case CALL:
         CALLSTACK[callstack++] = ip + 1;
@@ -179,36 +186,41 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         break;
       case SYSCALL:
         switch (instruction->arg) {
-          case 0:
+          case SYS_READ:
             STACK[stack++] = sys_read();
             break;
-          case 1:
+          case SYS_WRITE:
             sys_write(STACK[--stack]);
             break;
-          case 2:
-            sys_exit(STACK[--stack]);
-            break;
+          case SYS_EXIT:
+            return STACK[--stack];
           default:
             puts("Unknown syscall ");
             sys_write(instruction->arg);
             return -1;
         }
+        ++ip;
         break;
       case RET:
         ip = CALLSTACK[--callstack];
         mem -= STACKFRAME[--stackframe];
         break;
       case ENTER:
-        r = instruction->n_args + instruction->n_locals;
-        STACKFRAME[stackframe] = r;
-        mem += r;
+        // n args
+        r = instruction->arg & 0xFFFFFFFF;
+        // n locals
+        l = instruction->arg >> 32;
+        STACKFRAME[stackframe++] = r + l;
+        mem += r + l;
 
-        for (Int i = 0; i < instruction->n_args; ++i) {
+        for (Int i = 0; i < r; ++i) {
           MEMORY[mem - i] = STACK[--stack];
         }
+        ++ip;
         break;
       case LEAVE:
-        break;
+        puts("Reached LEAVE instruction\n");
+        return -1;
       default:
         puts("Unhandled opcode ");
         sys_write(instruction->opcode);
@@ -297,7 +309,7 @@ static Int run(const Byte* filename) {
   }
 
   if ((size - HEADER_SIZE) % sizeof(Instruction) != 0) {
-    puts("Invalid or corrupted file (size)");
+    puts("Invalid or corrupted file (size)\n");
     return -1;
   }
 
