@@ -1,5 +1,6 @@
 #include "types.h"
 #include "syscalls.h"
+#include "io.h"
 
 #define WINAPI __stdcall
 static const int GET_STDIN  = -10;
@@ -41,13 +42,21 @@ static Bool fill_buffer(Handle* file, IoBuffer* buffer) {
   return success;
 }
 
-static void puts(const char* s) {
+// IO functions
+extern void puts(const Byte* s) {
   Int len = 0;
-  const char* p = s;
+  const Byte* p = s;
   while (*p++) ++len;
   WriteFile(STDOUT, s, len, NULL, NULL);
 }
 
+extern Handle open(const Byte* filename) {
+
+
+  return NULL;
+}
+
+// Utils
 static void panic(const char* s) {
   puts(s);
   sys_exit(-1);

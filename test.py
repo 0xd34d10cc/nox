@@ -42,8 +42,8 @@ def test_program(file):
     program = bc.compile(program)
     assert program == bc.parse(str(program))
 
-    bytecode_file = file.replace('.nox', '.noxbc')
-    with open(bytecode_file, 'wt') as f:
+    bytecode_text = file.replace('.nox', '.noxtbc')
+    with open(bytecode_text, 'wt') as f:
         f.write(str(program))
 
     out = io.StringIO()
@@ -63,3 +63,14 @@ def test_program(file):
     binary = file.replace('.nox', '.exe')
     status = subprocess.run([binary], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
     assert expected_output == status.stdout.decode()
+
+    # bytecode = file.replace('.nox', '.noxbc')
+    # with open(bytecode, 'wb') as f:
+    #     f.write(program.serialize())
+
+    # TODO: test vm
+    # TODO: do not rebuild vm for every test
+    # driver.build('vm.c')
+    # binary = 'vm.exe'
+    # status = subprocess.run([binary, bytecode], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
+    # assert expected_output = status.stdout.decode()

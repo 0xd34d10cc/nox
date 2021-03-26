@@ -135,6 +135,10 @@ dmypy.json
 *.png
 
 # tests intermediate files
+tests/*.noxtbc
 tests/*.noxbc
 tests/*.s
-tests/*.exe
+
+# binary files
+*.exe
+*.obj

@@ -32,24 +32,30 @@ def build(program):
 
     def compile(program):
         args = '/nologo', '/GS-', '/O1', '/Oi-', '/c'
-        subprocess.run([compiler, *args, program], stdout=subprocess.DEVNULL, check=True)
+        subprocess.run([compiler, *args, program], check=True)
         return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
 
     def assemble(program):
         subprocess.run([assembler, '-f', 'win64', program], check=True)
         return program.replace('.s', '.obj').replace('.asm', '.obj')
 
-    obj = assemble(program)
-    rt = compile(runtime())
+    if program.endswith('.s'):
+        obj = assemble(program)
+        rt  = compile(runtime())
+    elif program.endswith('.c'):
+        obj = compile(program)
+        rt  = compile(runtime())
+
+    objects = obj, rt
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
     args = '/nologo', '/nodefaultlib', '/subsystem:console', '/entry:main'
-    out = program.replace('.s', '.exe').replace('.asm', '.exe')
-    subprocess.run([linker, *args, obj, rt, kernel32, f'/out:{out}'], check=True)
+    out = program.replace('.s', '.exe').replace('.c', '.exe')
+    subprocess.run([linker, *args, *objects, kernel32, f'/out:{out}'], check=True)
     os.remove(rt)
     os.remove(obj)
 
 def main(file):
-    if file.endswith('.s') or file.endswith('.asm'):
+    if file.endswith('.s') or file.endswith('.c'):
         build(file)
         return
 
