@@ -18,6 +18,8 @@ static const Int PAGE_READWRITE = 4;
 extern Handle WINAPI CreateFileMappingA(Handle file, void* security, Int protect, Int maxsize_high, Int maxsize_low, const Byte* name);
 static const Int MAP_ALL_ACCESS = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0xF0000;
 extern Byte*  WINAPI MapViewOfFile(Handle file, Int access, Int offset_high, Int offset_low, Int size);
+extern Bool   WINAPI UnmapViewOfFile(Byte* addtess);
+extern Bool   WINAPI CloseHandle(Handle handle);
 extern void   WINAPI ExitProcess(Int code);
 
 static Handle STDIN;
@@ -68,6 +70,10 @@ extern Handle open(const Byte* filename) {
   return file;
 }
 
+extern void close(Handle file) {
+  CloseHandle(file);
+}
+
 extern Int file_size(Handle file) {
   Int size = 0;
   if (!GetFileSizeEx(file, &size)) {
@@ -83,11 +89,12 @@ extern Byte* mmap(Handle file) {
   }
 
   Byte* view = MapViewOfFile(mapping, MAP_ALL_ACCESS, 0, 0, 0);
-  if (view == NULL) {
-    return NULL;
-  }
-
+  CloseHandle(mapping);
   return view;
+}
+
+extern void munmap(Byte* map) {
+  UnmapViewOfFile(map);
 }
 
 // Utils
@@ -169,6 +176,7 @@ static Int to_chars(Byte* s, Int len, Int val) {
   return n;
 }
 
+// syscalls
 extern Int sys_read(void) {
   if (!fill_buffer(STDIN, &STDIN_BUFFER)) {
     panic("sys_read() failed: io error\n");

@@ -3,7 +3,6 @@ import sys
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict
 
 import bc
 from bc import Op, Instruction, Label, Program, Fn

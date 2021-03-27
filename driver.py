@@ -12,14 +12,21 @@ def runtime():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(current_dir, 'rt', f'{os.name}.c')
 
+sdk = None
+
 def find_winsdk():
+    global sdk
+    if sdk is not None:
+        return sdk
+
     base = r'C:\Program Files (x86)\Windows Kits\10\Lib'
 
     def version(path):
         return [int(part) for part in os.path.basename(path).split('.')]
 
     latest_sdk = max(os.listdir(base), key=version)
-    return os.path.join(base, latest_sdk)
+    sdk = os.path.join(base, latest_sdk)
+    return sdk
 
 compiler = shutil.which('cl')
 assembler = shutil.which('nasm')
