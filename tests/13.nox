@@ -1,24 +1,24 @@
-n = read()
+n = input()
 
 do {
     if n == 1 {
-        write(0)
+        print(0)
     }
     else if n == 2 {
-        write(1)
+        print(1)
     }
     else if n == 3 {
-        write(2)
+        print(2)
     }
     else if n == 4 {
-        write(3)
+        print(3)
     }
     else {
-        write(10)
+        print(10)
     }
 
     if n >= 5 {
-        write(11)
+        print(11)
     }
 
     n = n - 1

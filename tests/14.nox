@@ -1,4 +1,4 @@
-n = read()
+n = input()
 while n > 0 {
     if n < 1000 {
         if n < 500 {
@@ -6,7 +6,7 @@ while n > 0 {
                 if n < 125 {
                     if n < 63 {
                         if n < 32 {
-                            write(1)
+                            print(1)
                         }
                     }
                 }

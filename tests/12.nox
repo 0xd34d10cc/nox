@@ -1,21 +1,21 @@
-n = read()
+n = input()
 while n >= 0 {
     if n > 1 {
-        write(0)
+        print(0)
         if n == 3 {
-            write(0)
+            print(0)
         }
         else {
-            write(1)
+            print(1)
         }
     }
     else {
-        write(1)
+        print(1)
         if n > 0 {
-            write(0)
+            print(0)
         }
         else {
-            write(1)
+            print(1)
         }
     }
     n = n - 1

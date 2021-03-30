@@ -9,6 +9,6 @@ fn test2(b) {
 }
 
 test1()
-write(a)
+print(a)
 test2(8)
-write(a)
+print(a)

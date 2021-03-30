@@ -1,6 +1,6 @@
 s = 0
 do {
-    n = read()
+    n = input()
     s = s + n
 } while n != 0
-write(s)
+print(s)

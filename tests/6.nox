@@ -1,14 +1,14 @@
-x = read()
-y = read()
+x = input()
+y = input()
 z = x < y
-write(z)
+print(z)
 z = x <= y
-write(z)
+print(z)
 z = x == y
-write(z)
+print(z)
 z = x != y
-write(z)
+print(z)
 z = x >= y
-write(z)
+print(z)
 z = x > y
-write(z)
+print(z)

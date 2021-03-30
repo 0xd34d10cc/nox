@@ -1,8 +1,8 @@
 // factorial(n)
-n = read()
+n = input()
 s = 1
 do {
     s = s * n
     n = n - 1
 } while n != 0
-write(s)
+print(s)

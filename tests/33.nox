@@ -10,5 +10,5 @@ fn test(n, m) -> int {
     return s
 }
 
-write(test(10, 100))
-write(test(100, 10))
+print(test(10, 100))
+print(test(100, 10))

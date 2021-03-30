@@ -177,15 +177,15 @@ static Int to_chars(Byte* s, Int len, Int val) {
 }
 
 // syscalls
-extern Int sys_read(void) {
+extern Int sys_input(void) {
   if (!fill_buffer(STDIN, &STDIN_BUFFER)) {
-    panic("sys_read() failed: io error\n");
+    panic("sys_input() failed: io error\n");
   }
 
   Int parsed = 0;
   Int val = parse_int(STDIN_BUFFER.data, STDIN_BUFFER.n, &parsed);
   if (parsed <= 0) {
-    panic("sys_read() failed: invalid integer\n");
+    panic("sys_input() failed: invalid integer\n");
   }
 
   for (Int i = 0; i < STDIN_BUFFER.n - parsed; ++i) {
@@ -195,11 +195,11 @@ extern Int sys_read(void) {
   return val;
 }
 
-extern void sys_write(Int val) {
+extern void sys_print(Int val) {
   Byte buffer[32];
   Int len = to_chars(buffer, sizeof(buffer), val);
   if (len < 0) {
-    panic("sys_write() failed: int conversion\n");
+    panic("sys_print() failed: int conversion\n");
   }
 
   buffer[len] = '\n';
@@ -208,11 +208,11 @@ extern void sys_write(Int val) {
   Int written = 0;
   Bool success = WriteFile(STDOUT, buffer, len, &written, NULL);
   if (!success) {
-    panic("sys_write() failed: io error\n");
+    panic("sys_print() failed: io error\n");
   }
 
   if (written != len) {
-    panic("sys_write() failed: short write\n");
+    panic("sys_print() failed: short write\n");
   }
 }
 

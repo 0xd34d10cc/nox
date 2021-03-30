@@ -10,9 +10,9 @@ fn fact(n) {
     }
 }
 
-n = read()
+n = input()
 for i = n, i >= 1, i = i - 1 {
     fact(i)
-    write(i)
-    write(result)
+    print(i)
+    print(result)
 }

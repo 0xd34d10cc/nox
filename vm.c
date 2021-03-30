@@ -10,7 +10,7 @@
   do {                                                           \
     if (!(cond)) {                                               \
       puts("Failed to execute instruction at ip=");              \
-      sys_write(ip);                                             \
+      sys_print(ip);                                             \
       puts("Condition at " FILE_LINE  " is false: " #cond "\n"); \
       return -1;                                                 \
     }                                                            \
@@ -87,13 +87,13 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
   while (ip < n) {
     Instruction* instruction = instructions + ip;
     // puts("IP: ");
-    // sys_write(ip);
+    // sys_print(ip);
     // puts("OP: ");
-    // sys_write(instruction->opcode);
+    // sys_print(instruction->opcode);
     // puts("MEM: ");
-    // sys_write(mem);
+    // sys_print(mem);
     // puts("STACK: ");
-    // sys_write(stack);
+    // sys_print(stack);
     switch (instruction->opcode) {
       case LOAD:
         RT_CHECK(stack < MAX_STACK_DEPTH);
@@ -235,20 +235,20 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         break;
       case SYSCALL:
         switch (instruction->arg) {
-          case SYS_READ:
+          case SYS_INPUT:
             RT_CHECK(stack < MAX_STACK_DEPTH);
-            STACK[stack++] = sys_read();
+            STACK[stack++] = sys_input();
             break;
-          case SYS_WRITE:
+          case SYS_PRINT:
             RT_CHECK(stack > 0);
-            sys_write(STACK[--stack]);
+            sys_print(STACK[--stack]);
             break;
           case SYS_EXIT:
             RT_CHECK(stack > 0);
             return STACK[--stack];
           default:
             puts("Unknown syscall ");
-            sys_write(instruction->arg);
+            sys_print(instruction->arg);
             return -1;
         }
         ++ip;
@@ -280,7 +280,7 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         return -1;
       default:
         puts("Unhandled opcode ");
-        sys_write(instruction->opcode);
+        sys_print(instruction->opcode);
         return -1;
     }
   }

@@ -1,4 +1,4 @@
-n = read()
+n = input()
 i = 2
 fib_1 = 1
 fib_2 = 1
@@ -10,4 +10,4 @@ while i < n {
     fib_1 = fib
     i = i + 1
 }
-write(fib)
+print(fib)

@@ -1,6 +1,6 @@
-n = read()
+n = input()
 f = 1
 for pass, n >= 1, n = n-1 {
     f = f * n
 }
-write(f)
+print(f)

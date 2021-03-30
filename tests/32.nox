@@ -12,6 +12,6 @@ fn ack(m, n) -> int {
 
 for m = 0, m <= 3, m = m + 1 {
     for n = 0, n <= 3, n = n + 1 {
-        write(ack(m, n))
+        print(ack(m, n))
     }
 }

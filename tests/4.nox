@@ -1,4 +1,4 @@
-x = read()
-y = read()
+x = input()
+y = input()
 z = ((x + y) + (x - y)) + ((x - y) - (x + y))
-write(z)
+print(z)

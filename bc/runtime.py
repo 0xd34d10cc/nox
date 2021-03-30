@@ -3,6 +3,8 @@ import sys
 
 from typing import List, Dict
 from dataclasses import dataclass, field
+
+from . import syscall
 from .instruction import Instruction, Op
 
 def binop(op):
@@ -20,11 +22,11 @@ def and_(l, r):
 def or_(l, r):
     return operator.truth(l or r)
 
-def sys_read(self):
+def sys_input(self):
     value = input('I: ') if sys.stdin.isatty() else input()
     self.stack.append(int(value))
 
-def sys_write(self, value):
+def sys_print(self, value):
     if sys.stdout.isatty():
         print(f'O: {value}')
     else:
@@ -37,11 +39,19 @@ class ExitCode(Exception):
 def sys_exit(self, value):
     raise ExitCode(value)
 
-SYSCALLS = [
-    (sys_read, 0),
-    (sys_write, 1),
-    (sys_exit, 1)
-]
+
+_syscalls = {
+    'exit': sys_exit,
+    'input': sys_input,
+    'print': sys_print
+}
+
+SYSCALLS = {}
+
+for name, fn in _syscalls.items():
+    n, s = syscall.by_name(name)
+    SYSCALLS[n] = (fn, len(s.args))
+
 
 class State:
     ip: int

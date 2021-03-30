@@ -1,11 +1,11 @@
 import os
 import sys
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 
 import bc
-from bc import Op, Instruction, Label, Program, Fn
+from bc import Op, Instruction, Label, Program, Fn, syscall
 
 
 def try_find(xs, val):
@@ -76,15 +76,10 @@ class StackLocation:
         offset = abs(self.offset) * word_size
         return f'qword [{Reg.RBP}{sign}{offset}]'
 
-syscalls = {
-    0: Fn('sys_read',  args=[],       locals=set(), returns_value=True,  start=None, end=None),
-    1: Fn('sys_write', args=['num'],  locals=set(), returns_value=False, start=None, end=None),
-    2: Fn('sys_exit',  args=['code'], locals=set(), returns_value=False, start=None, end=None)
-}
 
 base_listing = 'global main\n\n' + \
                 'extern sys_setup\n' + \
-    '\n'.join(f'extern {syscall.name}' for syscall in syscalls.values()) + '\n\n'
+    '\n'.join(f'extern sys_{syscall.name}' for _, syscall in syscall.enumerate()) + '\n\n'
 
 
 def binop(op):
@@ -233,7 +228,8 @@ class Compiler:
         self.compile_call(self.program.functions[label.name])
 
     def syscall(self, n):
-        self.compile_call(syscalls[n], shadow_space=shadow_space)
+        s = syscall.by_number(n)
+        self.compile_call(replace(s, name='sys_' + s.name), shadow_space=shadow_space)
 
     def enter(self, fn_tag, *args):
         fn = self.program.functions[self.current]

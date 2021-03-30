@@ -1,21 +1,21 @@
 global a, b, c
 
 fn test1(a) {
-    write(a)
+    print(a)
 }
 
 fn test2(b) {
-    write(b)
+    print(b)
 }
 
 fn test3(c) {
-    write(c)
+    print(c)
 }
 
-fn print() {
-    write(a)
-    write(b)
-    write(c)
+fn out() {
+    print(a)
+    print(b)
+    print(c)
 }
 
 a = 100
@@ -23,8 +23,8 @@ b = 200
 c = 300
 
 test1(1)
-print()
+out()
 test2(2)
-print()
+out()
 test3(3)
-print()
+out()

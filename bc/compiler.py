@@ -1,15 +1,11 @@
+
 from itertools import islice
 from dataclasses import dataclass, field
 from lark import Token, Tree
+
+from . import syscall
 from .instruction import Program, Instruction, Op, Label
 
-
-# name -> number
-SYSCALLS = {
-    'read': 0,
-    'write': 1,
-    'exit': 2
-}
 
 @dataclass
 class Compiler:
@@ -61,7 +57,7 @@ class Compiler:
             self.compile(node)
 
         self.push_op(Op.CONST, 0)
-        self.push_op(Op.SYSCALL, SYSCALLS['exit'])
+        self.push_op(Op.SYSCALL, syscall.number_by_name('exit'))
         self.push_op(Op.LEAVE)
 
     def global_(self, ast):
@@ -184,8 +180,9 @@ class Compiler:
         for arg in reversed(args):
             self.compile(arg)
 
-        if name.value in SYSCALLS:
-            self.push_op(Op.SYSCALL, SYSCALLS[name.value])
+        number = syscall.number_by_name(name.value)
+        if number is not None:
+            self.push_op(Op.SYSCALL, number)
         else:
             self.push_op(Op.CALL, Label(name.value))
 

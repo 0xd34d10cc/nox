@@ -7,8 +7,8 @@ fn fib(n) -> int {
     }
 }
 
-n = read()
+n = input()
 for i = n, i >= 1, i = i - 1 {
-    write(i)
-    write(fib(i))
+    print(i)
+    print(fib(i))
 }

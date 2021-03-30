@@ -1,4 +1,4 @@
-n = read()
+n = input()
 c = 1
 p = 2
 while c {
@@ -32,8 +32,8 @@ while c {
         else {}
     }
 
-    write (p)
-    write (i)
+    print(p)
+    print(i)
     n = n / (d / p)
     p = p + 1
     c = n != 1
