@@ -11,12 +11,13 @@ language_grammar = '''
     args: [VAR ("," VAR)*]
     typename: "int"
     ?block: "{" statement* "}"
-    ?statement: assign | if_else | while | do_while | for | call_statement | return | pass
+    ?statement: assign_var | assign_list | if_else | while | do_while | for | call_statement | return | pass
     if_else: "if" expr block ("else" "if" expr block)* ["else" block]
     while: "while" expr block
     do_while: "do" block "while" expr
     for: "for" statement "," expr "," statement block
-    assign: VAR ASSIGN expr
+    assign_list: VAR "[" expr "]" ASSIGN expr
+    assign_var: VAR ASSIGN expr
     call_statement: VAR "(" [expr ("," expr)*] ")"
     return: "return" expr
     pass: "pass"
@@ -27,7 +28,9 @@ language_grammar = '''
     ?cmp: sum ((LT|LE|GT|GE|EQ|NE) sum)*
     ?sum: product ((ADD|SUB) product)*
     ?product: atom ((MUL|DIV|MOD) atom)*
-    ?atom: SIGNED_INT | call_expr | VAR |  | "(" expr ")"
+    ?atom: SIGNED_INT | list_lit | list_at | call_expr | VAR | "(" expr ")"
+    list_lit: "[" [expr ("," expr)*] "]"
+    list_at: VAR "[" expr "]"
     call_expr: VAR "(" [expr ("," expr)*] ")"
 
     ADD: "+"

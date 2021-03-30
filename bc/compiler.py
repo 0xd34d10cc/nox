@@ -89,7 +89,7 @@ class Compiler:
         for statement in ast.children:
             self.compile(statement)
 
-    def assign(self, ast):
+    def assign_var(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
         if var.value in self.locals[-1]:
@@ -102,6 +102,43 @@ class Compiler:
             self.locals[-1].add(var.value)
 
         self.push_op(op, var.value)
+
+    def assign_list(self, ast):
+        var, idx, op, expr = ast.children
+        self.compile(expr)
+        self.compile(idx)
+        if var.value in self.locals[-1]:
+            op = Op.LOAD
+        elif var.value in self.globals:
+            op = Op.GLOAD
+        else:
+            assert False, f'Unknown variable: {var.value}'
+
+        self.push_op(op, var.value)
+        self.push_op(Op.SYSCALL, syscall.number_by_name('list_set'))
+
+    def list_at(self, ast):
+        var, idx = ast.children
+        self.compile(idx)
+        if var.value in self.locals[-1]:
+            op = Op.LOAD
+        elif var.value in self.globals:
+            op = Op.GLOAD
+        else:
+            assert False, f'Unknown variable: {var.value}'
+
+        self.push_op(op, var.value)
+        self.push_op(Op.SYSCALL, syscall.number_by_name('list_get'))
+
+    def list_lit(self, ast):
+        self.push_op(Op.SYSCALL, syscall.number_by_name('list'))
+        self.push_op(Op.STORE, '__list_lit')
+        values = ast.children
+        for val in values:
+            self.compile(val)
+            self.push_op(Op.LOAD, '__list_lit')
+            self.push_op(Op.SYSCALL, syscall.number_by_name('list_push'))
+        self.push_op(Op.LOAD, '__list_lit')
 
     def if_else(self, ast):
         condition, if_true, *if_false = ast.children
