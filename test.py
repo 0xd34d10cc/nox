@@ -51,6 +51,7 @@ def test_program(file):
     with open(bytecode_text, 'wt') as f:
         f.write(str(program))
 
+    # test python implementation
     out = io.StringIO()
     state = bc.State(program)
     with contextlib.redirect_stdout(out), use_as_stdin(inp):
@@ -59,6 +60,7 @@ def test_program(file):
     assert len(state.stack) == 0, str(stack)
     assert expected_output == out.getvalue()
 
+    # test compiled x64 binary
     asm = x64.compile(program)
     asm_file = file.replace('.nox', '.s')
     with open(asm_file, 'wt') as f:
@@ -72,12 +74,13 @@ def test_program(file):
     status = subprocess.run([binary], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
     assert expected_output == status.stdout.decode()
 
+    # test vm in written C
     bytecode = file.replace('.nox', '.noxbc')
     with open(bytecode, 'wb') as f:
         f.write(program.serialize())
 
     if vm is None:
-        driver.build('vm.c', [rt], with_runtime=False)
+        driver.build('vm.c', [rt], with_runtime=False, definitions=['RT_CHECKS_ON'])
         vm = 'vm.exe'
     status = subprocess.run([vm, bytecode], input=inp.encode(), capture_output=True, timeout=0.5, check=True)
     assert expected_output == status.stdout.decode()

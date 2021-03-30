@@ -1,6 +1,23 @@
 #include "rt/syscalls.h"
 #include "rt/io.h"
 
+#define _STR(x) #x
+#define STR(x) _STR(x)
+#define FILE_LINE __FILE__ ":" STR(__LINE__)
+
+#ifdef RT_CHECKS_ON
+#define RT_CHECK(cond)                                           \
+  do {                                                           \
+    if (!(cond)) {                                               \
+      puts("Failed to execute instruction at ip=");              \
+      sys_write(ip);                                             \
+      puts("Condition at " FILE_LINE  " is false: " #cond "\n"); \
+      return -1;                                                 \
+    }                                                            \
+  } while (0)
+#else
+#define RT_CHECK(cond)
+#endif
 
 enum Op {
   LOAD    = 0x00,
@@ -41,17 +58,19 @@ typedef struct {
 
 static_assert(sizeof(Instruction) == 16);
 
+#define MAX_STACK_DEPTH 256
+// assuming less than 16 args+locals per function on average
+#define MAX_MEM MAX_STACK_DEPTH * 16
 typedef struct {
-  Int stack[256];
-  Int callstack[256];
-  Int stackframe[256];
-  Int memory[4 * 1024 * 1024];
+  Int stack[MAX_STACK_DEPTH];
+  Int callstack[MAX_STACK_DEPTH];
+  Int stackframe[MAX_STACK_DEPTH];
+  Int memory[MAX_MEM];
 } State;
 
 static State STATE;
 
 static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int globals) {
-  // Move to locals for faster access
   Int* STACK = STATE.stack;
   Int* CALLSTACK = STATE.callstack;
   Int* STACKFRAME = STATE.stackframe;
@@ -77,122 +96,155 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
     // sys_write(stack);
     switch (instruction->opcode) {
       case LOAD:
+        RT_CHECK(stack < MAX_STACK_DEPTH);
+        RT_CHECK(stackframe > 0);
+        RT_CHECK(instruction->arg < STACKFRAME[stackframe-1]);
         STACK[stack++] = MEMORY[mem - instruction->arg];
         ++ip;
         break;
       case STORE:
+        RT_CHECK(stack > 0);
+        RT_CHECK(stackframe > 0);
+        RT_CHECK(instruction->arg < STACKFRAME[stackframe-1]);
         MEMORY[mem - instruction->arg] = STACK[--stack];
         ++ip;
         break;
       case GLOAD:
+        RT_CHECK(stack < MAX_STACK_DEPTH);
+        RT_CHECK(instruction->arg < globals);
         STACK[stack++] = MEMORY[instruction->arg];
         ++ip;
         break;
       case GSTORE:
+        RT_CHECK(stack > 0);
+        RT_CHECK(instruction->arg < globals);
         MEMORY[instruction->arg] = STACK[--stack];
         ++ip;
         break;
       case CONST:
+        RT_CHECK(stack < MAX_STACK_DEPTH);
         STACK[stack++] = instruction->arg;
         ++ip;
         break;
       case ADD:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         STACK[stack-1] += r;
         ++ip;
         break;
       case SUB:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         STACK[stack-1] -= r;
         ++ip;
         break;
       case MUL:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         STACK[stack-1] *= r;
         ++ip;
         break;
       case DIV:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         STACK[stack-1] /= r;
         ++ip;
         break;
       case MOD:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         STACK[stack-1] %= r;
         ++ip;
         break;
       case AND:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l && r;
         ++ip;
         break;
       case OR:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l || r;
         ++ip;
         break;
       case LT:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l < r;
         ++ip;
         break;
       case LE:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l <= r;
         ++ip;
         break;
       case GT:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l > r;
         ++ip;
         break;
       case GE:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l >= r;
         ++ip;
         break;
       case EQ:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l == r;
         ++ip;
         break;
       case NE:
+        RT_CHECK(stack > 1);
         r = STACK[--stack];
         l = STACK[stack-1];
         STACK[stack-1] = l != r;
         ++ip;
         break;
       case JMP:
+        RT_CHECK(instruction->arg < n);
         ip = instruction->arg;
         break;
       case JZ:
+        RT_CHECK(instruction->arg < n);
         r = STACK[--stack];
         ip = !r ? instruction->arg : (ip + 1);
         break;
       case JNZ:
+        RT_CHECK(instruction->arg < n);
         r = STACK[--stack];
         ip = r ? instruction->arg : (ip + 1);
         break;
       case CALL:
+        RT_CHECK(instruction->arg < n);
+        RT_CHECK(instructions[instruction->arg].opcode == ENTER);
+        RT_CHECK(callstack < MAX_STACK_DEPTH);
         CALLSTACK[callstack++] = ip + 1;
         ip = instruction->arg;
         break;
       case SYSCALL:
         switch (instruction->arg) {
           case SYS_READ:
+            RT_CHECK(stack < MAX_STACK_DEPTH);
             STACK[stack++] = sys_read();
             break;
           case SYS_WRITE:
+            RT_CHECK(stack > 0);
             sys_write(STACK[--stack]);
             break;
           case SYS_EXIT:
+            RT_CHECK(stack > 0);
             return STACK[--stack];
           default:
             puts("Unknown syscall ");
@@ -202,10 +254,13 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         ++ip;
         break;
       case RET:
+        RT_CHECK(callstack > 0);
+        RT_CHECK(stackframe > 0);
         ip = CALLSTACK[--callstack];
         mem -= STACKFRAME[--stackframe];
         break;
       case ENTER:
+        RT_CHECK(stackframe < MAX_STACK_DEPTH);
         // n args
         r = instruction->arg & 0xFFFFFFFF;
         // n locals
@@ -213,6 +268,8 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         STACKFRAME[stackframe++] = r + l;
         mem += r + l;
 
+        RT_CHECK(r <= stack);
+        RT_CHECK(mem < MAX_MEM);
         for (Int i = 0; i < r; ++i) {
           MEMORY[mem - i] = STACK[--stack];
         }
@@ -303,7 +360,7 @@ static Int run(const Byte* filename) {
     return -1;
   }
 
-  if (size < sizeof(MAGIC) || !check_magic(code)) {
+  if (size < HEADER_SIZE || !check_magic(code)) {
     puts("Invalid or corrupted file (magic)\n");
     return -1;
   }
@@ -316,9 +373,17 @@ static Int run(const Byte* filename) {
   Int entrypoint = *(Int*)(code + sizeof(MAGIC));
   Int globals = entrypoint & 0xFFFFFFFF;
   entrypoint >>= 32;
-  Instruction* instructions = (Instruction*)(code + sizeof(Instruction));
+  Instruction* instructions = (Instruction*)(code + HEADER_SIZE);
   Int n = size / sizeof(Instruction);
-  return run_code(instructions, n, entrypoint, globals);
+  if (entrypoint >= n) {
+    puts("Invalid or corrupted file (entrypoint)\n");
+    return -1;
+  }
+
+  Int ret = run_code(instructions, n, entrypoint, globals);
+  munmap(code);
+  close(file);
+  return ret;
 }
 
 int main(void) {

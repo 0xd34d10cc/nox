@@ -32,9 +32,12 @@ compiler = shutil.which('cl')
 assembler = shutil.which('nasm')
 linker = shutil.which('link')
 
-def compile(program):
+def compile(program, definitions=None):
     assert compiler, 'cl not in PATH'
     args = '/nologo', '/GS-', '/O2', '/Oi-', '/c'
+    if definitions is not None:
+        for d in definitions:
+            args += (f'/D{d}',)
     subprocess.run([compiler, *args, program], check=True)
     return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
 
@@ -43,7 +46,7 @@ def assemble(program):
     subprocess.run([assembler, '-f', 'win64', program], check=True)
     return program.replace('.s', '.obj').replace('.asm', '.obj')
 
-def build(program, objects=None, with_runtime=True):
+def build(program, objects=None, with_runtime=True, definitions=None):
     assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
     assert linker, 'linker is not in PATH'
     if objects is None:
@@ -52,11 +55,11 @@ def build(program, objects=None, with_runtime=True):
     if program.endswith('.s'):
         obj = assemble(program)
     elif program.endswith('.c'):
-        obj = compile(program)
+        obj = compile(program, definitions=definitions)
 
     objects.append(obj)
     if with_runtime:
-        rt = compile(runtime())
+        rt = compile(runtime(), definitions=definitions)
         objects.append(rt)
 
     kernel32 = os.path.join(find_winsdk(), 'um', 'x64', 'kernel32.lib')
