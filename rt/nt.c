@@ -2,7 +2,15 @@
 #include "syscalls.h"
 #include "io.h"
 
+#include "common.c"
+
 #define WINAPI __stdcall
+extern Handle WINAPI GetProcessHeap(void);
+static const Int NO_SYNC = 0x01;
+extern Handle WINAPI HeapCreate(Int options, Int size, Int max_size);
+extern Byte* WINAPI HeapAlloc(Handle heap, Int flags, Int size);
+extern Byte* WINAPI HeapReAlloc(Handle heap, Int flags, Byte* p, Int size);
+extern Bool  WINAPI HeapFree(Handle heap, Int flags, Byte* p);
 static const Int GET_STDIN  = -10;
 static const Int GET_STDOUT = -11;
 extern Handle WINAPI GetStdHandle(Int type);
@@ -22,6 +30,8 @@ extern Bool   WINAPI UnmapViewOfFile(Byte* addtess);
 extern Bool   WINAPI CloseHandle(Handle handle);
 extern void   WINAPI ExitProcess(Int code);
 
+static Handle HEAP;
+
 static Handle STDIN;
 typedef struct {
   Byte data[1024];
@@ -33,6 +43,7 @@ static IoBuffer STDIN_BUFFER;
 static Handle STDOUT;
 
 extern void sys_setup(void) {
+  HEAP   = HeapCreate(NO_SYNC, 0, 0);
   STDIN  = GetStdHandle(GET_STDIN);
   STDOUT = GetStdHandle(GET_STDOUT);
   STDIN_BUFFER.n = 0;
@@ -52,6 +63,19 @@ static Bool fill_buffer(Handle* file, IoBuffer* buffer) {
   }
 
   return success;
+}
+
+// Memory allocation
+static Byte* alloc(Int n) {
+  return HeapAlloc(HEAP, 0, n);
+}
+
+static Byte* realloc(Byte* p, Int n) {
+  return HeapReAlloc(HEAP, 0, p, n);
+}
+
+static void dealloc(Byte* p) {
+  HeapFree(HEAP, 0, p);
 }
 
 // IO functions
@@ -97,85 +121,6 @@ extern void munmap(Byte* map) {
   UnmapViewOfFile(map);
 }
 
-// Utils
-static void panic(const char* s) {
-  puts(s);
-  sys_exit(-1);
-}
-
-static Int parse_int(const Byte* buffer, Int len, Int* parsed) {
-  Int i = 0;
-  while (buffer[i] == ' ' || buffer[i] == '\n' || buffer[i] == '\r') {
-    ++i;
-  }
-
-  if (i == len) {
-    *parsed = -1;
-    return -1;
-  }
-
-  Bool negative = 0;
-  if (buffer[i] == '-') {
-    negative = 1;
-    ++i;
-  }
-
-  if (i == len || buffer[i] > '9' || buffer[i] < '0') {
-    *parsed = -1;
-    return -1;
-  }
-
-  Int val = 0;
-  do {
-    val *= 10;
-    val += buffer[i] - '0';
-    ++i;
-  } while (i < len && '0' <= buffer[i] && buffer[i] <= '9');
-
-  if (negative) {
-    val = -val;
-  }
-
-  *parsed = i;
-  return val;
-}
-
-extern void memcpy(Byte* dst, Byte* src, Int len) {
-  while (len--) {
-    *dst++ = *src++;
-  }
-}
-
-static Int to_chars(Byte* s, Int len, Int val) {
-  Byte buffer[32];
-  Bool negative = val < 0;
-  if (negative) {
-    val = -val;
-  }
-
-  Int i = sizeof(buffer) - 1;
-  do {
-    buffer[i] = '0' + (val % 10);
-    val /= 10;
-    i--;
-  } while (val != 0);
-
-  if (negative) {
-    buffer[i] = '-';
-    i--;
-  }
-
-  i++;
-
-  Int n = sizeof(buffer) - i;
-  if (n > len) {
-    return -1;
-  }
-
-  memcpy(s, buffer + i, n);
-  return n;
-}
-
 // syscalls
 extern Int sys_input(void) {
   if (!fill_buffer(STDIN, &STDIN_BUFFER)) {
@@ -183,7 +128,7 @@ extern Int sys_input(void) {
   }
 
   Int parsed = 0;
-  Int val = parse_int(STDIN_BUFFER.data, STDIN_BUFFER.n, &parsed);
+  Int val = from_chars(STDIN_BUFFER.data, STDIN_BUFFER.n, &parsed);
   if (parsed <= 0) {
     panic("sys_input() failed: invalid integer\n");
   }
