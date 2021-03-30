@@ -1,0 +1,16 @@
+fn fib(n) -> int {
+    if n <= 1 {
+        return 1
+    }
+
+    return fib(n - 1) + fib(n - 2)
+}
+
+fibs = []
+for i = 0, i < 5, i = i + 1 {
+    push(fibs, fib(i))
+}
+
+for i = 0, i < len(fibs), i = i + 1 {
+    print(fibs[i])
+}

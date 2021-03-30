@@ -256,19 +256,24 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
             RT_CHECK(stack > 1);
             list = (List*)STACK[--stack];
             val = STACK[--stack];
-            sys_list_push(list, val);
+            sys_push(list, val);
+            break;
+          case SYS_LIST_LEN:
+            RT_CHECK(stack > 0);
+            list = (List*)STACK[--stack];
+            STACK[stack++] = sys_len(list);
             break;
           case SYS_LIST_CLEAR:
             RT_CHECK(stack > 0);
             list = (List*)STACK[--stack];
-            sys_list_clear(list);
+            sys_clear(list);
             break;
           case SYS_LIST_SLICE:
             RT_CHECK(stack > 2);
             list = (List*)STACK[--stack];
             l = STACK[--stack];
             r = STACK[--stack];
-            STACK[stack++] = (Int)sys_list_slice(list, l, r);
+            STACK[stack++] = (Int)sys_slice(list, l, r);
             break;
           case SYS_LIST_REF:
             RT_CHECK(stack > 0);

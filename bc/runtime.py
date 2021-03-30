@@ -39,9 +39,42 @@ class ExitCode(Exception):
 def sys_exit(self, value):
     raise ExitCode(value)
 
+def sys_list(self):
+    self.stack.append([])
+
+def sys_list_get(self, l, i):
+    self.stack.append(l[i])
+
+def sys_list_set(self, l, i, v):
+    l[i] = v
+
+def sys_list_push(self, l, v):
+    l.append(v)
+
+def sys_list_len(self, l):
+    self.stack.append(len(l))
+
+def sys_list_clear(self, l):
+    l.clear()
+
+def sys_list_slice(self, l, left, right):
+    if left == -1:
+        left = None
+    if right == -1:
+        right = None
+    self.stack.append(l[slice(left, right)])
 
 _syscalls = {
     'exit': sys_exit,
+
+    'list': sys_list,
+    'list_get': sys_list_get,
+    'list_set': sys_list_set,
+    'push': sys_list_push,
+    'len': sys_list_len,
+    'clear': sys_list_clear,
+    'slice': sys_list_slice,
+
     'input': sys_input,
     'print': sys_print
 }

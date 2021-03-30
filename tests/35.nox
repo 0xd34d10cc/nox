@@ -1,0 +1,4 @@
+xs = [1, 2, 3]
+for i = 0, i < len(xs), i = i + 1 {
+    print(xs[i])
+}

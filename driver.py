@@ -36,18 +36,17 @@ def compile(program, definitions=None):
     assert compiler, 'cl not in PATH'
     args = '/nologo', '/GS-', '/O2', '/Oi-', '/c'
     if definitions is not None:
-        for d in definitions:
-            args += (f'/D{d}',)
+        args += tuple(f'/D{d}' for d in definitions)
     subprocess.run([compiler, *args, program], check=True)
     return os.path.join(os.getcwd(), os.path.basename(program).replace('.c', '.obj'))
 
 def assemble(program):
+    assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
     assert assembler, 'nasm is not in PATH'
     subprocess.run([assembler, '-f', 'win64', program], check=True)
     return program.replace('.s', '.obj').replace('.asm', '.obj')
 
 def build(program, objects=None, with_runtime=True, definitions=None):
-    assert os.name == 'nt', 'Assembly compilation for {os.name} is not implemented'
     assert linker, 'linker is not in PATH'
     if objects is None:
         objects = []
@@ -83,12 +82,12 @@ def main(file):
         program = bc.compile(program)
     elif file.endswith('.noxtbc'):
         program = bc.parse(program)
-        data = program.serialize()
-        with open(file.replace('.noxtbc', '.noxbc'), 'wb') as f:
-            f.write(data)
-        return
+        # data = program.serialize()
+        # with open(file.replace('.noxtbc', '.noxbc'), 'wb') as f:
+        #     f.write(data)
+        # return
         # TODO: implement --target option
-        # program = x64.compile(program)
+        program = x64.compile(program)
     else:
         raise Exception(f'Unsupported file type: {file}')
 

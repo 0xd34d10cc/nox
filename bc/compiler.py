@@ -103,7 +103,7 @@ class Compiler:
 
         self.push_op(op, var.value)
 
-    def assign_list(self, ast):
+    def assign_at(self, ast):
         var, idx, op, expr = ast.children
         self.compile(expr)
         self.compile(idx)
@@ -137,7 +137,7 @@ class Compiler:
         for val in values:
             self.compile(val)
             self.push_op(Op.LOAD, '__list_lit')
-            self.push_op(Op.SYSCALL, syscall.number_by_name('list_push'))
+            self.push_op(Op.SYSCALL, syscall.number_by_name('push'))
         self.push_op(Op.LOAD, '__list_lit')
 
     def if_else(self, ast):

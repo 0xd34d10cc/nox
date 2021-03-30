@@ -35,8 +35,8 @@ def natural_sort_key(key, _re=re.compile(r'([0-9]+)')):
 
 files = sorted(files, key=natural_sort_key)
 
-vm = None
 rt = None
+vm = None
 
 @pytest.mark.parametrize('file', files)
 def test_program(file):

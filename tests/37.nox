@@ -1,0 +1,15 @@
+fn out(xs) {
+    for i = 0, i < len(xs), i = i + 1 {
+        print(xs[i])
+    }
+}
+
+xs = [1, 2, 3, 4]
+for i = 0, i < len(xs), i = i + 1 {
+    xs[i] = xs[i] * xs[i]
+}
+out(xs)
+clear(xs)
+out(xs)
+push(xs, 2+2)
+out(xs)

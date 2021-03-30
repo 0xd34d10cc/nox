@@ -39,7 +39,7 @@ extern void sys_list_set(List* list, Int i, Int val) {
   list->data[i] = val;
 }
 
-extern void sys_list_push(List* list, Int val) {
+extern void sys_push(List* list, Int val) {
   if (list->size == list->capacity) {
     if (!list->data) {
       list->data = (Int*)alloc(sizeof(Int));
@@ -55,16 +55,16 @@ extern void sys_list_push(List* list, Int val) {
   list->data[list->size++] = val;
 }
 
-extern Int sys_list_len(List* list) {
+extern Int sys_len(List* list) {
   return list->size;
 }
 
-extern void sys_list_clear(List* list) {
+extern void sys_clear(List* list) {
   list->size = 0;
 }
 
-extern List* sys_list_slice(List* list, Int left, Int right) {
-  if (left >= list->size || right >= list->size) {
+extern List* sys_slice(List* list, Int left, Int right) {
+  if (left >= list->size || right > list->size) {
     panic("sys_list_slice: slice bound is out of range");
   }
 
@@ -84,6 +84,10 @@ extern List* sys_list_slice(List* list, Int left, Int right) {
     else {
       panic("sys_list_slice: slice right bound is negative");
     }
+  }
+
+  if (left > right) {
+    panic("sys_list_slice: left > right");
   }
 
   Int* start = list->data + left;
