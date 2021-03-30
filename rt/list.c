@@ -55,6 +55,10 @@ extern void sys_list_push(List* list, Int val) {
   list->data[list->size++] = val;
 }
 
+extern Int sys_list_len(List* list) {
+  return list->size;
+}
+
 extern void sys_list_clear(List* list) {
   list->size = 0;
 }

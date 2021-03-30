@@ -20,10 +20,11 @@ _by_number = {
     21: syscall('list_get', 'list', 'i'),
     22: syscall('list_set','list',  'i', 'val', returns_value=False),
     23: syscall('list_push', 'list', 'val', returns_value=False),
-    24: syscall('list_clear', 'list', returns_value=False),
-    25: syscall('list_slice', 'list', 'left', 'right'),
-    26: syscall('list_ref', 'list'),
-    27: syscall('list_unref', 'list'),
+    24: syscall('list_len', 'list'),
+    25: syscall('list_clear', 'list', returns_value=False),
+    26: syscall('list_slice', 'list', 'left', 'right'),
+    27: syscall('list_ref', 'list'),
+    28: syscall('list_unref', 'list'),
 
     100: syscall('print', 'val', returns_value=False),
     101: syscall('input')

@@ -82,7 +82,8 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
   Int stackframe = 0;
   Int mem = globals;
 
-  Int r, l;
+  List* list;
+  Int r, l, idx, val;
 
   while (ip < n) {
     Instruction* instruction = instructions + ip;
@@ -235,6 +236,50 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         break;
       case SYSCALL:
         switch (instruction->arg) {
+          case SYS_LIST:
+            RT_CHECK(stack < MAX_STACK_DEPTH);
+            STACK[stack++] = (Int)sys_list();
+            break;
+          case SYS_LIST_GET:
+            RT_CHECK(stack > 1);
+            list = (List*)STACK[--stack];
+            idx = STACK[--stack];
+            STACK[stack++] = sys_list_get(list, idx);
+            break;
+          case SYS_LIST_SET:
+            RT_CHECK(stack > 2);
+            list = (List*)STACK[--stack];
+            idx = STACK[--stack];
+            sys_list_set(list, idx, STACK[--stack]);
+            break;
+          case SYS_LIST_PUSH:
+            RT_CHECK(stack > 1);
+            list = (List*)STACK[--stack];
+            val = STACK[--stack];
+            sys_list_push(list, val);
+            break;
+          case SYS_LIST_CLEAR:
+            RT_CHECK(stack > 0);
+            list = (List*)STACK[--stack];
+            sys_list_clear(list);
+            break;
+          case SYS_LIST_SLICE:
+            RT_CHECK(stack > 2);
+            list = (List*)STACK[--stack];
+            l = STACK[--stack];
+            r = STACK[--stack];
+            STACK[stack++] = (Int)sys_list_slice(list, l, r);
+            break;
+          case SYS_LIST_REF:
+            RT_CHECK(stack > 0);
+            list = (List*)STACK[--stack];
+            sys_list_ref(list);
+            break;
+          case SYS_LIST_UNREF:
+            RT_CHECK(stack > 0);
+            list = (List*)STACK[--stack];
+            sys_list_unref(list);
+            break;
           case SYS_INPUT:
             RT_CHECK(stack < MAX_STACK_DEPTH);
             STACK[stack++] = sys_input();
