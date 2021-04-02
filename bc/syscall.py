@@ -11,7 +11,7 @@ _by_number = {
 
     # File IO
     1: syscall('open', 'filename'),
-    2: syscall('close', 'file'),
+    2: syscall('close', 'file', returns_value=False),
     3: syscall('read', 'file', 'n'),
     4: syscall('write', 'file', 'data'),
 
@@ -23,9 +23,10 @@ _by_number = {
     24: syscall('len', 'list'),
     25: syscall('clear', 'list', returns_value=False),
     26: syscall('slice', 'list', 'left', 'right'),
-    27: syscall('list_ref', 'list'),
-    28: syscall('list_unref', 'list'),
+    27: syscall('list_ref', 'list', returns_value=False),
+    28: syscall('list_unref', 'list', returns_value=False),
 
+    # stdin/stdout
     100: syscall('print', 'val', returns_value=False),
     101: syscall('input')
 }
@@ -36,7 +37,7 @@ _by_name = {
 }
 
 def enumerate():
-    return _by_name.values()
+    return _by_number.items()
 
 def number_by_name(name):
     if name in _by_name:
