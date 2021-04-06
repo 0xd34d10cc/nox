@@ -21,29 +21,7 @@ class Compiler:
         self.push(Instruction(op, *args))
 
     def compile(self, ast):
-        # Leaf expression
-        if type(ast) is Token:
-            token = ast
-
-            if token.type == 'SIGNED_INT':
-                val = int(token.value)
-                self.push_op(Op.CONST, val)
-                return
-
-            if token.type == 'VAR':
-                var = token.value
-                if var in self.locals[-1]:
-                    op = Op.LOAD
-                elif var in self.globals:
-                    op = Op.GLOAD
-                else:
-                    assert False, f'Undefined "{token.value}" at {token.line}:{token.column}'
-                self.push_op(op, var)
-                return
-
-            assert False, f'Unexpected token: {token}'
-
-        assert type(ast) is Tree
+        assert type(ast) is Tree, ast
         handler = getattr(self, ast.data, None) or getattr(self, ast.data + '_')
         handler(ast)
 
@@ -89,7 +67,7 @@ class Compiler:
         for statement in ast.children:
             self.compile(statement)
 
-    def assign_var(self, ast):
+    def assign(self, ast):
         var, op, expr = ast.children
         self.compile(expr)
         if var.value in self.locals[-1]:
@@ -104,31 +82,35 @@ class Compiler:
         self.push_op(op, var.value)
 
     def assign_at(self, ast):
-        var, idx, op, expr = ast.children
+        location, idx, op, expr = ast.children
         self.compile(expr)
         self.compile(idx)
-        if var.value in self.locals[-1]:
-            op = Op.LOAD
-        elif var.value in self.globals:
-            op = Op.GLOAD
-        else:
-            assert False, f'Unknown variable: {var.value}'
-
-        self.push_op(op, var.value)
+        self.compile(location)
         self.push_op(Op.SYSCALL, syscall.number_by_name('list_set'))
 
     def list_at(self, ast):
-        var, idx = ast.children
+        location, idx = ast.children
         self.compile(idx)
-        if var.value in self.locals[-1]:
+        self.compile(location)
+        self.push_op(Op.SYSCALL, syscall.number_by_name('list_get'))
+
+    def var_expr(self, ast):
+        var = ast.children[0].value
+        if var in self.locals[-1]:
             op = Op.LOAD
-        elif var.value in self.globals:
+        elif var in self.globals:
             op = Op.GLOAD
         else:
-            assert False, f'Unknown variable: {var.value}'
+            assert False, f'Undefined "{token.value}" at {token.line}:{token.column}'
+        self.push_op(op, var)
 
-        self.push_op(op, var.value)
-        self.push_op(Op.SYSCALL, syscall.number_by_name('list_get'))
+    def int_lit(self, ast):
+        val = int(ast.children[0].value)
+        self.push_op(Op.CONST, val)
+
+    def char_lit(self, ast):
+        val = ord(ast.children[0].value)
+        self.push_op(Op.CONST, val)
 
     def list_lit(self, ast):
         self.push_op(Op.SYSCALL, syscall.number_by_name('list'))
@@ -232,9 +214,6 @@ class Compiler:
             self.push_op(Op.SYSCALL, number)
         else:
             self.push_op(Op.CALL, Label(name.value))
-
-    call_expr = call
-    call_statement = call
 
     def binop(self, ast):
         assert len(ast.children) % 2 != 0, f'Invalid binop tree: {ast}'

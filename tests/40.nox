@@ -1,0 +1,18 @@
+fn print_str_array(strings) {
+    for i = 0, i < len(strings), i = i + 1 {
+        for j = 0, j < len(strings[i]), j = j + 1 {
+            print(strings[i][j])
+        }
+    }
+}
+
+strings = ["abcd", "efgh"]
+print_str_array(strings)
+
+for i = 0, i < len(strings), i = i + 1 {
+    for j = 0, j < len(strings[i]), j = j + 1 {
+        strings[i][j] = 'a'
+    }
+}
+
+print_str_array(strings)
