@@ -28,8 +28,9 @@ language_grammar = '''
     ?cmp: sum ((LT|LE|GT|GE|EQ|NE) sum)*
     ?sum: product ((ADD|SUB) product)*
     ?product: atom ((MUL|DIV|MOD) atom)*
-    ?atom: SIGNED_INT | list_lit | list_at | call_expr | VAR | "(" expr ")"
+    ?atom: SIGNED_INT | list_lit | str_lit | list_at | call_expr | VAR | "(" expr ")"
     list_lit: "[" [expr ("," expr)*] "]"
+    str_lit: STR
     list_at: VAR "[" expr "]"
     call_expr: VAR "(" [expr ("," expr)*] ")"
 
@@ -52,6 +53,7 @@ language_grammar = '''
 
     %import common.SIGNED_INT
     %import common.CNAME -> VAR
+    %import common.ESCAPED_STRING -> STR
     %import common.WS
     %import common.CPP_COMMENT
 

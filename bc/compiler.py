@@ -1,4 +1,4 @@
-
+from ast import literal_eval
 from itertools import islice
 from dataclasses import dataclass, field
 from lark import Token, Tree
@@ -139,6 +139,16 @@ class Compiler:
             self.push_op(Op.LOAD, '__list_lit')
             self.push_op(Op.SYSCALL, syscall.number_by_name('push'))
         self.push_op(Op.LOAD, '__list_lit')
+
+    def str_lit(self, ast):
+        self.push_op(Op.SYSCALL, syscall.number_by_name('list'))
+        self.push_op(Op.STORE, '__str_lit')
+        assert len(ast.children) == 1
+        for c in literal_eval(ast.children[0]):
+            self.push_op(Op.CONST, ord(c))
+            self.push_op(Op.LOAD, '__str_lit')
+            self.push_op(Op.SYSCALL, syscall.number_by_name('push'))
+        self.push_op(Op.LOAD, '__str_lit')
 
     def if_else(self, ast):
         condition, if_true, *if_false = ast.children

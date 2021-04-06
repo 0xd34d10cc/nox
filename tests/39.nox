@@ -1,0 +1,15 @@
+fn print_str(s) {
+    for i = 0, i < len(s), i = i + 1 {
+        print(s[i])
+    }
+}
+
+x = "abcdefgh"
+
+print_str(x)
+
+for i = 0, i < len(x), i = i + 1 {
+    x[i] = x[i] + 2
+}
+
+print_str(x)
