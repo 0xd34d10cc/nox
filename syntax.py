@@ -16,7 +16,7 @@ language_grammar = '''
     while     : "while" expr block
     do_while  : "do" block "while" expr
     for       : "for" statement "," expr "," statement block
-    assign_at : atom "[" expr "]" ASSIGN expr
+    assign_at : expr "[" expr "]" ASSIGN expr
     assign    : VAR ASSIGN expr
     return    : "return" expr
     pass      : "pass"
@@ -64,6 +64,7 @@ language_grammar = '''
     %ignore CPP_COMMENT
 '''
 
+# TODO: update grammar to use lalr parser
 parser = Lark(language_grammar)
 parse = parser.parse
 

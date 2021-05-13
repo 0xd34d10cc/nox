@@ -329,7 +329,7 @@ static Int run_code(Instruction* instructions, Int n, Int entrypoint, Int global
         puts("Reached LEAVE instruction\n");
         return -1;
       default:
-        puts("Unhandled opcode ");
+        puts("Unknown opcode ");
         sys_print(instruction->opcode);
         return -1;
     }
@@ -348,7 +348,7 @@ extern Byte* WINAPI GetCommandLineA();
 
 static Byte* parse_args(void) {
   Byte* args = cli_args();
-  while (*args != '\0' && *args != ' ') {
+  while (*args && *args != ' ') {
     ++args;
   }
 
@@ -357,17 +357,17 @@ static Byte* parse_args(void) {
   }
 
 
-  while (*args != '\0' && *args == ' ') {
+  while (*args && *args == ' ') {
     ++args;
   }
 
   Byte* filename = args;
-  while (*args != '\0' && *args != ' ') {
+  while (*args && *args != ' ') {
     ++args;
   }
 
   if (*args) {
-    // We should have a single argument
+    // We should have only one argument
     return NULL;
   }
 

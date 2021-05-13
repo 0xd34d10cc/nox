@@ -1,7 +1,6 @@
 from ast import literal_eval
-from itertools import islice
 from dataclasses import dataclass, field
-from lark import Token, Tree
+from lark import Tree
 
 from . import syscall
 from .instruction import Program, Instruction, Op, Label
@@ -57,7 +56,6 @@ class Compiler:
         self.push_op(Op.ENTER, "fn" if ret else "proc", *args)
         self.is_fn = ret is not None
         self.compile(body)
-        last = self.instructions[-1]
         if not ret:
             self.push_op(Op.RET)
         self.push_op(Op.LEAVE)
@@ -101,7 +99,7 @@ class Compiler:
         elif var in self.globals:
             op = Op.GLOAD
         else:
-            assert False, f'Undefined "{token.value}" at {token.line}:{token.column}'
+            assert False, f'Undefined "{var.value}" at {var.line}:{var.column}'
         self.push_op(op, var)
 
     def int_lit(self, ast):
@@ -195,9 +193,11 @@ class Compiler:
     def return_(self, ast):
         assert len(ast.children) in (0, 1)
         if len(ast.children):
+            assert self.is_fn, f'Attempt to return value from procedure at {ast.line}:{ast.column}'
             ret = ast.children[0]
-            assert self.is_fn, f'Attempt to return value from procedure at {ret.line}:{ret.column}'
             self.compile(ret)
+        else:
+            assert not self.is_fn, f'No return value in function at {ast.line}:{ast.column}'
         self.push_op(Op.RET)
 
     def pass_(self, ast):

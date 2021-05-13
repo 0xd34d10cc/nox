@@ -1,11 +1,10 @@
 import operator
 import sys
 
-from typing import List, Dict
-from dataclasses import dataclass, field
+from typing import List
 
 from . import syscall
-from .instruction import Instruction, Op
+from .instruction import Op
 
 def binop(op):
     def handler(self):
